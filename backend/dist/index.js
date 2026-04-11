@@ -439,6 +439,15 @@ app.post("/api/goals", authenticate, (req, res) => __awaiter(void 0, void 0, voi
         res.status(500).json({ error: "Internal error" });
     }
 }));
+app.delete("/api/goals/:id", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield prisma.goal.delete({ where: { id: Number(req.params.id), userId: req.user.userId } });
+        res.json({ success: true });
+    }
+    catch (error) {
+        res.status(500).json({ error: "Internal error" });
+    }
+}));
 // --- EXPENSES ROUTE ---
 app.get("/api/expenses", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -835,6 +844,15 @@ app.post("/api/teams/goals", authenticate, (req, res) => __awaiter(void 0, void 
             data: { teamId: Number(teamId), platform, target: Number(target) }
         });
         res.json(goal);
+    }
+    catch (error) {
+        res.status(500).json({ error: "Internal error" });
+    }
+}));
+app.delete("/api/teams/goals/:id", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield prisma.teamGoal.delete({ where: { id: Number(req.params.id) } });
+        res.json({ success: true });
     }
     catch (error) {
         res.status(500).json({ error: "Internal error" });

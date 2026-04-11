@@ -81,7 +81,7 @@ interface TeamGoal {
 }
 
 export default function TeamPage() {
-  const { formatValue } = useDashboard();
+  const { formatValue, addToast } = useDashboard();
   const [loading, setLoading] = useState(true);
   const [team, setTeam] = useState<Team | null>(null);
   const [view, setView] = useState<"INITIAL" | "DASHBOARD">("INITIAL");
@@ -258,6 +258,17 @@ export default function TeamPage() {
       fetchDashboardData(team.id); 
     } catch (e: any) {
       alert(e.response?.data?.error || "Erro ao redefinir dados");
+    }
+  };
+
+  const deleteTeamGoal = async (id: number) => {
+    if (!confirm("Tem certeza que deseja remover esta meta da equipe?")) return;
+    try {
+      await api.delete(`/teams/goals/${id}`);
+      setGoals(prev => prev.filter(g => g.id !== id));
+      addToast("Meta removida com sucesso!", "success");
+    } catch (e) {
+      addToast("Erro ao remover meta", "error");
     }
   };
 
@@ -620,8 +631,14 @@ export default function TeamPage() {
                         style={{ width: `${progress}%` }} 
                       />
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex justify-between items-center">
                       <span className="text-[10px] font-black text-primary">{progress}%</span>
+                      <button 
+                        onClick={() => deleteTeamGoal(goal.id)}
+                        className="p-2 hover:bg-red-500/10 text-slate-600 hover:text-red-500 rounded-lg transition-all"
+                      >
+                         <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>

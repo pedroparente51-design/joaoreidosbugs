@@ -59,7 +59,7 @@ export default function SettingsPage() {
     e.preventDefault();
     try {
       const api = (await import("@/lib/api")).default;
-      const { data } = await api.post("/api/user/profile", { name: profileForm.name, image: profileForm.image });
+      const { data } = await api.post("/user/profile", { name: profileForm.name, image: profileForm.image });
       
       // Update local storage
       const stored = localStorage.getItem('user');
