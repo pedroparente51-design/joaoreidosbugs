@@ -19,7 +19,7 @@ const platformLinks = [
     name: "Loja / Proxy",
     description: "Loja principal",
     icon: ShoppingBag,
-    href: "#",
+    href: "https://jaorei.netlify.app/dashboard/loja",
   },
   {
     name: "Grupo WhatsApp",

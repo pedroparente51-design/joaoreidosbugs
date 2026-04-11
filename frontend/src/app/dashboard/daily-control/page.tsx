@@ -309,28 +309,7 @@ export default function DailyControlPage() {
 
   const { addToast } = useDashboard();
 
-  const finalizeCooperation = async (record: DailyRecord) => {
-    try {
-      const { data } = await api.post(`/daily-records/${record.id}/finalize`);
-      if (data.success) {
-        // Update local state
-        setSheets(prev => prev.map(s => s.id === activeSheetId ? {
-          ...s,
-          records: s.records.map(r => r.id === record.id ? { ...r, status: 'FINISHED' } : r)
-        } : s));
 
-        const profitValue = record.profit ?? (record.withdraw - record.investment);
-        const formattedProfit = profitValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        
-        addToast(`Remessa da plataforma ${record.platform} finalizada! Lucro: R$ ${formattedProfit}`, 'success');
-      }
-    } catch (e: any) {
-      alert(e.response?.data?.error || "Erro ao finalizar cooperação");
-      console.error(e);
-    } finally {
-      setActiveMenuId(null);
-    }
-  };
 
   const handleSheetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -582,41 +561,12 @@ export default function DailyControlPage() {
                            </td>
                            <td className="px-6 py-4 text-right relative">
                               <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <button 
-                                   onClick={() => setActiveMenuId(activeMenuId === r.id ? null : r.id)}
-                                   className={cn(
-                                     "p-2 hover:bg-white/5 rounded-lg text-slate-400 transition-all",
-                                     activeMenuId === r.id && "bg-white/10 text-white"
-                                   )}
-                                 >
-                                   <MoreVertical size={14} />
-                                 </button>
+
                                  <button onClick={() => { setEditingRecord(r); setIsModalOpen(true); }} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><Edit2 size={14} /></button>
                                  <button onClick={() => removeRecord(r.id)} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><Trash2 size={14} /></button>
                               </div>
 
-                              {/* Dropdown Menu */}
-                              {activeMenuId === r.id && (
-                                <>
-                                  <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                                  <div className="absolute right-6 top-12 w-48 bg-[#1a1625] border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                    <button 
-                                      onClick={() => { setActiveMenuId(null); setEditingRecord(r); setIsModalOpen(true); }}
-                                      className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-bold text-slate-300 uppercase tracking-widest hover:bg-white/5 transition-colors"
-                                    >
-                                      <Zap size={14} className="text-primary" />
-                                      Finalizar ciclo
-                                    </button>
-                                    <button 
-                                      onClick={() => finalizeCooperation(r)}
-                                      className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-bold text-accent-blue uppercase tracking-widest hover:bg-accent-blue/5 transition-colors border-t border-white/5"
-                                    >
-                                      <CheckCircle2 size={14} />
-                                      Finalizar cooperação
-                                    </button>
-                                  </div>
-                                </>
-                              )}
+
                            </td>
                         </tr>
                       );
