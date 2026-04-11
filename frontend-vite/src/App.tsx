@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Register from './pages/Register';
 import { AuthGuard } from './components/layout/AuthGuard';
 
 function App() {
@@ -8,7 +9,7 @@ function App() {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<div className="text-white p-8">Registro em breve...</div>} />
+      <Route path="/register" element={<Register />} />
       
       {/* Root redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
