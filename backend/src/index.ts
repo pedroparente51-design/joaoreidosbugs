@@ -672,18 +672,36 @@ app.get("/api/teams/operations", authenticate, async (req: any, res: any) => {
 
 app.post("/api/teams/operations", authenticate, async (req: any, res: any) => {
   try {
-    const { teamId, platform, network, bets, average, depositors } = req.body;
-    const operation = await prisma.teamOperation.create({
-      data: { 
-        teamId: Number(teamId), 
-        platform, 
-        network, 
-        bets: Number(bets) || 0, 
-        average: Number(average) || 0, 
-        depositors: Number(depositors) || 0 
+    const { teamId, platform, network, bets, average, depositors, target } = req.body;
+    
+    const result = await prisma.$transaction(async (tx) => {
+      const operation = await tx.teamOperation.create({
+        data: { 
+          teamId: Number(teamId), 
+          platform, 
+          network, 
+          bets: Number(bets) || 0, 
+          average: Number(average) || 0, 
+          depositors: Number(depositors) || 0 
+        }
+      });
+
+      // Se houver um target, cria a meta automaticamente
+      if (target && Number(target) > 0) {
+        await tx.teamGoal.create({
+          data: {
+            teamId: Number(teamId),
+            platform,
+            target: Number(target),
+            status: "ACTIVE"
+          }
+        });
       }
+
+      return operation;
     });
-    res.json(operation);
+
+    res.json(result);
   } catch (error) { 
     console.error("Create operation error:", error);
     res.status(500).json({ error: "Internal error" }); 

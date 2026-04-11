@@ -691,18 +691,32 @@ app.get("/api/teams/operations", authenticate, (req, res) => __awaiter(void 0, v
 }));
 app.post("/api/teams/operations", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { teamId, platform, network, bets, average, depositors } = req.body;
-        const operation = yield prisma.teamOperation.create({
-            data: {
-                teamId: Number(teamId),
-                platform,
-                network,
-                bets: Number(bets) || 0,
-                average: Number(average) || 0,
-                depositors: Number(depositors) || 0
+        const { teamId, platform, network, bets, average, depositors, target } = req.body;
+        const result = yield prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            const operation = yield tx.teamOperation.create({
+                data: {
+                    teamId: Number(teamId),
+                    platform,
+                    network,
+                    bets: Number(bets) || 0,
+                    average: Number(average) || 0,
+                    depositors: Number(depositors) || 0
+                }
+            });
+            // Se houver um target, cria a meta automaticamente
+            if (target && Number(target) > 0) {
+                yield tx.teamGoal.create({
+                    data: {
+                        teamId: Number(teamId),
+                        platform,
+                        target: Number(target),
+                        status: "ACTIVE"
+                    }
+                });
             }
-        });
-        res.json(operation);
+            return operation;
+        }));
+        res.json(result);
     }
     catch (error) {
         console.error("Create operation error:", error);

@@ -115,7 +115,7 @@ export default function TeamPage() {
   const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false);
 
   // Forms State
-  const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0 });
+  const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0, target: 0 });
   const [goalForm, setGoalForm] = useState({ platform: "", target: 0 });
   const [remitForm, setRemitForm] = useState({ platform: "", deposit: 0, withdraw: 0, bau: 0, observation: "" });
   const [expenseForm, setExpenseForm] = useState({ name: "", amount: 0, category: "Proxy", date: new Date().toISOString().split('T')[0] });
@@ -205,23 +205,11 @@ export default function TeamPage() {
     if (!team) return;
     try {
       await api.post("/teams/operations", { ...opForm, teamId: team.id });
-      alert("Operação registrada!");
-      setOpForm({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0 });
+      alert("Operação e Meta registradas!");
+      setOpForm({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0, target: 0 });
       setIsOpModalOpen(false);
       fetchDashboardData(team.id); // Refresh operations list
     } catch (e) { alert("Erro ao registrar operação"); }
-  };
-
-  const submitGoal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!team) return;
-    try {
-      const { data } = await api.post("/teams/goals", { ...goalForm, teamId: team.id });
-      setGoals([data, ...goals]);
-      setGoalForm({ platform: "", target: 0 });
-      setIsGoalModalOpen(false);
-      alert("Meta criada com sucesso!");
-    } catch (e) { alert("Erro ao criar meta"); }
   };
 
   const submitRemittance = async (e: React.FormEvent) => {
@@ -586,7 +574,11 @@ export default function TeamPage() {
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Depositantes</label>
                 <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" value={opForm.depositors} onChange={e => setOpForm({ ...opForm, depositors: parseInt(e.target.value) || 0 })} />
               </div>
-              <button type="submit" className="md:col-span-2 bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">PUBLICAR OPERAÇÃO</button>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta de Remessas (Qtd)</label>
+                <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 50" value={opForm.target} onChange={e => setOpForm({ ...opForm, target: parseInt(e.target.value) || 0 })} />
+              </div>
+              <button type="submit" className="md:col-span-2 bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">PUBLICAR OPERAÇÃO E ESTABELECER META</button>
             </form>
           </Modal>
         </div>
@@ -596,53 +588,7 @@ export default function TeamPage() {
         <div className="space-y-8 animate-fade-in-up">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-white uppercase tracking-widest">Metas da Equipe</h2>
-            {canManage && (
-              <button 
-                onClick={() => setIsGoalModalOpen(true)} 
-                className="bg-white text-black px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-white/90 transition-all flex items-center gap-2"
-              >
-                <Plus size={16} /> Nova Meta
-              </button>
-            )}
           </div>
-
-          <Modal 
-            isOpen={isGoalModalOpen} 
-            onClose={() => setIsGoalModalOpen(false)} 
-            title="Configurar Nova Meta"
-            icon={<Target size={20} />}
-          >
-            <form onSubmit={submitGoal} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Plataforma</label>
-                <select 
-                  required 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" 
-                  value={goalForm.platform} 
-                  onChange={e => setGoalForm({ ...goalForm, platform: e.target.value })}
-                >
-                  <option value="" className="text-black">Selecione uma plataforma</option>
-                  {[...new Set(operations.map(op => op.platform))].map(plat => (
-                    <option key={plat} value={plat} className="text-black">
-                      {plat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta de Remessas (Qtd)</label>
-                <input 
-                  type="number" 
-                  required 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" 
-                  placeholder="Ex: 50" 
-                  value={goalForm.target} 
-                  onChange={e => setGoalForm({ ...goalForm, target: parseInt(e.target.value) || 0 })} 
-                />
-              </div>
-              <button type="submit" className="md:col-span-2 bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">SALVAR META DA EQUIPE</button>
-            </form>
-          </Modal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {goals.map(goal => {
