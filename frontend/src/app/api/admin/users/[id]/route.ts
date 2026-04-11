@@ -4,20 +4,21 @@ import { verifyAuth, unauthorizedAction, forbiddenAction } from "@/lib/auth-help
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const userAuth = await verifyAuth(request);
   if (!userAuth) return unauthorizedAction();
   if (userAuth.role !== 'ADMIN') return forbiddenAction();
 
   try {
+    const { id } = await context.params;
     const { role, status } = await request.json();
     const updateData: any = {};
     if (role) updateData.role = role;
     if (status) updateData.status = status;
 
     const user = await prisma.user.update({
-      where: { id: Number(params.id) },
+      where: { id: Number(id) },
       data: updateData
     });
     return NextResponse.json(user);
@@ -29,14 +30,15 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const userAuth = await verifyAuth(request);
   if (!userAuth) return unauthorizedAction();
   if (userAuth.role !== 'ADMIN') return forbiddenAction();
 
   try {
-    await prisma.user.delete({ where: { id: Number(params.id) } });
+    const { id } = await context.params;
+    await prisma.user.delete({ where: { id: Number(id) } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("DELETE admin-user error:", error);

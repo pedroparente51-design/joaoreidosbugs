@@ -4,13 +4,14 @@ import { verifyAuth, unauthorizedAction } from "@/lib/auth-helper";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const userAuth = await verifyAuth(request);
   if (!userAuth) return unauthorizedAction();
 
   try {
-    const recordId = Number(params.id);
+    const { id: paramId } = await context.params;
+    const recordId = Number(paramId);
     const userId = userAuth.userId;
 
     const record = await prisma.dailyRecord.findUnique({

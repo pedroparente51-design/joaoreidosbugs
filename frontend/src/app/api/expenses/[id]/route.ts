@@ -4,13 +4,14 @@ import { verifyAuth, unauthorizedAction } from "@/lib/auth-helper";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedAction();
 
   try {
-    const id = Number(params.id);
+    const { id: paramId } = await context.params;
+    const id = Number(paramId);
     await prisma.expense.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {

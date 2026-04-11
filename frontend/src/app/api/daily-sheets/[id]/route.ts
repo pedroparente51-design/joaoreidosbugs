@@ -4,12 +4,13 @@ import { verifyAuth, unauthorizedAction } from "@/lib/auth-helper";
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedAction();
 
   try {
+    const { id } = await context.params;
     const { name, proxyCost, smsCost } = await request.json();
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
@@ -17,7 +18,7 @@ export async function PUT(
     if (smsCost !== undefined) updateData.smsCost = Number(smsCost);
     
     const sheet = await prisma.dailySheet.update({
-      where: { id: Number(params.id) },
+      where: { id: Number(id) },
       data: updateData,
       include: { records: true }
     });
@@ -30,13 +31,14 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedAction();
 
   try {
-    await prisma.dailySheet.delete({ where: { id: Number(params.id) } });
+    const { id } = await context.params;
+    await prisma.dailySheet.delete({ where: { id: Number(id) } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("DELETE daily-sheet error:", error);
