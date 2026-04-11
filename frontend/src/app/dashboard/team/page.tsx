@@ -70,6 +70,7 @@ interface TeamOperation {
   bets: number;
   average: number;
   depositors: number;
+  operatorName?: string;
   createdAt: string;
 }
 
@@ -118,7 +119,7 @@ export default function TeamPage() {
   const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false);
 
   // Forms State
-  const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0, target: 0 });
+  const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: "", average: "", depositors: "", target: "", operatorName: "" });
   const [goalForm, setGoalForm] = useState({ platform: "", target: 0 });
   const [remitForm, setRemitForm] = useState({ platform: "", deposit: 0, withdraw: 0, cycles: "", observation: "" });
   const [expenseForm, setExpenseForm] = useState({ name: "", amount: 0, category: "Proxy", date: new Date().toISOString().split('T')[0] });
@@ -209,7 +210,7 @@ export default function TeamPage() {
     try {
       await api.post("/teams/operations", { ...opForm, teamId: team.id });
       alert("Operação e Meta registradas!");
-      setOpForm({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0, target: 0 });
+      setOpForm({ platform: "", network: "WE", bets: "", average: "", depositors: "", target: "", operatorName: "" });
       setIsOpModalOpen(false);
       fetchDashboardData(team.id); // Refresh operations list
     } catch (e) { alert("Erro ao registrar operação"); }
@@ -519,7 +520,7 @@ export default function TeamPage() {
                           <div>
                             <p className="text-sm font-black text-white uppercase tracking-tight">PLATAFORMA: {op.platform}</p>
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                              REDE: {op.network} • APOSTAS: {op.bets} • MÉDIA: {formatValue(`R$ ${op.average.toFixed(2)}`)} • {op.depositors} DEPOSITANTES
+                              REDE: {op.network} • APOSTAS: {op.bets} • MÉDIA: {formatValue(`R$ ${op.average.toFixed(2)}`)} • {op.depositors} DEPOSITANTES • OPERADOR: {op.operatorName || "SISTEMA"}
                             </p>
                           </div>
                         </div>
@@ -578,19 +579,23 @@ export default function TeamPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Apostas (Qtd)</label>
-                <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0" value={opForm.bets} onChange={e => setOpForm({ ...opForm, bets: parseInt(e.target.value) || 0 })} />
+                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 100" value={opForm.bets} onChange={e => setOpForm({ ...opForm, bets: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Média (R$)</label>
-                <input type="number" step="0.01" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={opForm.average} onChange={e => setOpForm({ ...opForm, average: parseFloat(e.target.value) || 0 })} />
+                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 5.00" value={opForm.average} onChange={e => setOpForm({ ...opForm, average: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Depositantes</label>
-                <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" value={opForm.depositors} onChange={e => setOpForm({ ...opForm, depositors: parseInt(e.target.value) || 0 })} />
+                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 10" value={opForm.depositors} onChange={e => setOpForm({ ...opForm, depositors: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta de Remessas (Qtd)</label>
-                <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 50" value={opForm.target} onChange={e => setOpForm({ ...opForm, target: parseInt(e.target.value) || 0 })} />
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta de Remessas (Ciclos)</label>
+                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 50" value={opForm.target} onChange={e => setOpForm({ ...opForm, target: e.target.value })} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do Operador</label>
+                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: João Silva" value={opForm.operatorName} onChange={e => setOpForm({ ...opForm, operatorName: e.target.value })} />
               </div>
               <button type="submit" className="md:col-span-2 bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">PUBLICAR OPERAÇÃO E ESTABELECER META</button>
             </form>
@@ -606,8 +611,10 @@ export default function TeamPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {goals.map(goal => {
-              const currentCount = feed.filter(f => f.platform === goal.platform).length;
-              const progress = Math.min(Math.round((currentCount / goal.target) * 100), 100);
+              const currentCycles = feed
+                .filter(f => f.platform === goal.platform)
+                .reduce((acc, curr) => acc + (parseInt(curr.cycles || "0") || 0), 0);
+              const progress = Math.min(Math.round((currentCycles / goal.target) * 100), 100);
               
               return (
                 <div key={goal.id} className="glass-card p-6 space-y-4">
@@ -622,7 +629,7 @@ export default function TeamPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                      <span>Progresso ({currentCount})</span>
+                      <span>Progresso ({currentCycles})</span>
                       <span>Meta: {goal.target}</span>
                     </div>
                     <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">

@@ -787,7 +787,7 @@ app.get("/api/teams/operations", authenticate, async (req: any, res: any) => {
 
 app.post("/api/teams/operations", authenticate, async (req: any, res: any) => {
   try {
-    const { teamId, platform, network, bets, average, depositors, target } = req.body;
+    const { teamId, platform, network, bets, average, depositors, target, operatorName } = req.body;
     
     const result = await prisma.$transaction(async (tx) => {
       const operation = await tx.teamOperation.create({
@@ -797,7 +797,8 @@ app.post("/api/teams/operations", authenticate, async (req: any, res: any) => {
           network, 
           bets: Number(bets) || 0, 
           average: Number(average) || 0, 
-          depositors: Number(depositors) || 0 
+          depositors: Number(depositors) || 0,
+          operatorName
         }
       });
 

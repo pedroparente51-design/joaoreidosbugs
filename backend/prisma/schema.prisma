@@ -74,6 +74,7 @@ model TeamOperation {
   bets       Int      @default(0)
   average    Float    @default(0.0)
   depositors Int      @default(0)
+  operatorName String?
   createdAt  DateTime @default(now())
   team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 }

@@ -791,7 +791,7 @@ app.get("/api/teams/operations", authenticate, (req, res) => __awaiter(void 0, v
 }));
 app.post("/api/teams/operations", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { teamId, platform, network, bets, average, depositors, target } = req.body;
+        const { teamId, platform, network, bets, average, depositors, target, operatorName } = req.body;
         const result = yield prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
             const operation = yield tx.teamOperation.create({
                 data: {
@@ -800,7 +800,8 @@ app.post("/api/teams/operations", authenticate, (req, res) => __awaiter(void 0, 
                     network,
                     bets: Number(bets) || 0,
                     average: Number(average) || 0,
-                    depositors: Number(depositors) || 0
+                    depositors: Number(depositors) || 0,
+                    operatorName
                 }
             });
             // Se houver um target, cria a meta automaticamente
