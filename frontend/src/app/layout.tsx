@@ -17,7 +17,8 @@ export const metadata: Metadata = {
   description: "Plataforma avançada de gerenciamento de dados e estatísticas.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/img/logo.png",
+    apple: "/img/logo1.png",
   },
 };
 
