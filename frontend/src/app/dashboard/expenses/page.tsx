@@ -14,7 +14,7 @@ interface Expense {
   date: string;
 }
 
-const CATEGORIES = ["Infraestrutura", "Ferramentas", "Contas Adicionais", "Marketing", "Outros"];
+const CATEGORIES = ["Proxy", "SMS", "Bot", "Outros"];
 
 export default function ExpensesPage() {
   const { formatValue } = useDashboard();
@@ -51,7 +51,7 @@ export default function ExpensesPage() {
         name,
         amount: parseFloat(amount),
         category,
-        date: new Date().toLocaleDateString('pt-BR'),
+        date: new Date().toISOString().split('T')[0],
       });
       setExpenses(prev => [data, ...prev]);
       setName("");

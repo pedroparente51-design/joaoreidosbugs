@@ -500,8 +500,16 @@ app.get("/api/dashboard-summary", authenticate, (req, res) => __awaiter(void 0, 
             where: { userId: req.user.userId },
             include: { records: true }
         });
-        const expenses = yield prisma.expense.findMany({
+        const allExpenses = yield prisma.expense.findMany({
             where: { userId: req.user.userId }
+        });
+        // Filtrar despesas apenas do dia atual
+        const today = new Date().toISOString().split('T')[0];
+        const todayExpenses = allExpenses.filter((e) => {
+            // Suporta formato ISO (2026-04-11) e pt-BR (11/04/2026)
+            if (e.date && e.date.includes('-'))
+                return e.date === today;
+            return false;
         });
         let totalInvest = 0;
         let totalWithdraw = 0;
@@ -513,7 +521,7 @@ app.get("/api/dashboard-summary", authenticate, (req, res) => __awaiter(void 0, 
                 totalWithdraw += record.withdraw;
             });
         });
-        const totalExp = expenses.reduce((acc, e) => acc + e.amount, 0);
+        const totalExp = todayExpenses.reduce((acc, e) => acc + e.amount, 0);
         const investment = totalInvest + totalProxySms + totalExp;
         const revenue = totalWithdraw;
         const profit = revenue - investment;
