@@ -603,7 +603,7 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
     sendPushNotification(
       req.user.userId,
       "Remessa registrada!",
-      `Novo registro de ${cycles.length} ciclo(s): Lucro Total de ${formattedProfit}`
+      `Novo registro de ${cycles.length} ciclo(s) - Lucro Total ${formattedProfit}`
     ).catch(e => console.error("Notification error:", e));
   } catch (error) { 
     console.error("Create daily-record error:", error);
