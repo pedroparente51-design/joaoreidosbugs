@@ -93,8 +93,10 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   const subscribeToPush = async () => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (typeof window === 'undefined') return false;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       console.warn("Push notifications not supported");
+      addToast("Seu navegador não suporta Web Push. (Se estiver no celular testando localmente, precisa de HTTPS/Ngrok. Se for iPhone, adicione à Tela de Início).", "error");
       return false;
     }
 
@@ -111,13 +113,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       const api = (await import('@/lib/api')).default;
       const { data: { publicKey } } = await api.get('/notifications/public-key');
 
+      const { urlBase64ToUint8Array } = await import('@/lib/pushUtils');
+      const convertedVapidKey = urlBase64ToUint8Array(publicKey);
+
       // Unsubscribe existing one just to be sure
       const existingSub = await registration.pushManager.getSubscription();
       if (existingSub) await existingSub.unsubscribe();
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: publicKey
+        applicationServerKey: convertedVapidKey
       });
 
       await api.post('/notifications/subscribe', subscription);
