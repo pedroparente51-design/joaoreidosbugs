@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, User, Bell, Lock, Palette, Database, Save, LogOut, Edit2, Trash2, AlertTriangle } from "lucide-react";
+import { Settings, User, Bell, Lock, Palette, Database, Save, LogOut, Edit2, Trash2, AlertTriangle, UserMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Modal from "@/components/layout/Modal";
 
@@ -274,6 +274,41 @@ export default function SettingsPage() {
                             className="flex items-center gap-3 px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 shadow-neon transition-all"
                           >
                              <Trash2 size={16} /> REDEFINIR MEUS DADOS AGORA
+                          </button>
+                       </div>
+                    </div>
+
+                    <div className="p-8 bg-red-500/5 border border-red-500/20 rounded-3xl space-y-6">
+                       <div className="flex items-start gap-4">
+                          <div className="p-3 bg-red-500/10 rounded-2xl text-red-500">
+                             <UserMinus size={24} />
+                          </div>
+                          <div className="space-y-2">
+                             <h4 className="text-sm font-black text-white uppercase tracking-widest">Sair da Equipe</h4>
+                             <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-lg">
+                                Remove você da equipe em que está participando. Seus dados pessoais serão mantidos, mas você perderá acesso às estatísticas e dados compartilhados da equipe.
+                                <strong className="text-red-400 block mt-2">Atenção: Você precisará de um novo convite para entrar novamente.</strong>
+                             </p>
+                          </div>
+                       </div>
+                       
+                       <div className="pt-4">
+                          <button 
+                            onClick={async () => {
+                              if (!confirm("⚠️ Tem certeza que deseja sair da equipe? Você perderá acesso aos dados compartilhados.")) return;
+                              if (!confirm("CONFIRMAÇÃO FINAL: Após sair, você precisará de um novo convite para retornar.")) return;
+                              try {
+                                const api = (await import("@/lib/api")).default;
+                                await api.post("/api/team/leave");
+                                alert("Você saiu da equipe com sucesso.");
+                                window.location.reload();
+                              } catch (e: any) {
+                                alert("Erro ao sair da equipe. Talvez você não esteja em nenhuma equipe.");
+                              }
+                            }}
+                            className="flex items-center gap-3 px-8 py-4 bg-red-500/80 hover:bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(239,68,68,0.2)] transition-all"
+                          >
+                             <UserMinus size={16} /> SAIR DA EQUIPE AGORA
                           </button>
                        </div>
                     </div>

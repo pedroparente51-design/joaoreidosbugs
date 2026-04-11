@@ -964,6 +964,36 @@ app.post("/api/user/reset-data", authenticate, (req, res) => __awaiter(void 0, v
         res.status(500).json({ error: "Erro interno ao redefinir seus dados" });
     }
 }));
+// ── Sair da Equipe ─────────────────────────────────────────────────────────
+app.post("/api/team/leave", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const userId = req.user.userId;
+        // Encontra todas as memberships do usuário
+        const memberships = yield prisma.teamMember.findMany({
+            where: { userId }
+        });
+        if (memberships.length === 0) {
+            return res.status(404).json({ error: "Você não está em nenhuma equipe." });
+        }
+        // Remove todas as memberships (sai de todas as equipes)
+        yield prisma.teamMember.deleteMany({
+            where: { userId }
+        });
+        // Registre a atividade
+        yield prisma.activity.create({
+            data: {
+                userId,
+                actionType: "LEAVE_TEAM",
+                description: "Saiu da equipe"
+            }
+        });
+        res.json({ success: true, message: "Você saiu da equipe com sucesso." });
+    }
+    catch (error) {
+        console.error("Leave team error:", error);
+        res.status(500).json({ error: "Erro interno ao sair da equipe" });
+    }
+}));
 app.listen(PORT, () => {
     console.log(`Backend rodando em http://localhost:${PORT}`);
 });
