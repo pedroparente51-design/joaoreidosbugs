@@ -18,7 +18,11 @@ import {
   Edit2,
   Zap,
   Receipt,
-  TrendingDown
+  TrendingDown,
+  X,
+  BarChart2,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -118,6 +122,7 @@ export default function TeamPage() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
   const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false);
+  const [selectedOperatorName, setSelectedOperatorName] = useState<string | null>(null);
 
   // Forms State
   const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: "", average: "", depositors: "", operatorName: "" });
@@ -447,27 +452,44 @@ export default function TeamPage() {
                 {stats.operatorsRanking.length === 0 ? (
                   <div className="text-center py-4 text-slate-500 text-[10px] font-bold uppercase">Nenhum dado disponível</div>
                 ) : (
-                  stats.operatorsRanking.map((op, idx) => (
-                    <div key={op.name} className="flex items-center justify-between group">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs",
-                          idx === 0 ? "bg-amber-500/20 text-amber-500" : 
-                          idx === 1 ? "bg-slate-400/20 text-slate-400" :
-                          idx === 2 ? "bg-amber-700/20 text-amber-700" : "bg-white/5 text-slate-500"
-                        )}>
-                          {idx + 1}º
+                  stats.operatorsRanking.map((op, idx) => {
+                    const maxCount = Math.max(...stats.operatorsRanking.map(o => o.count), 1);
+                    const maxAvg = Math.max(...stats.operatorsRanking.map(o => o.count > 0 ? o.profit / o.count : 0), 1);
+                    const thisAvg = op.count > 0 ? op.profit / op.count : 0;
+                    const isTopPerformer = idx === 0;
+                    const isFastest = op.count === maxCount && op.count > 0;
+                    const isPrecise = thisAvg === maxAvg && op.count > 0 && !isTopPerformer;
+                    return (
+                      <div 
+                        key={op.name} 
+                        className="flex items-center justify-between group cursor-pointer hover:bg-white/5 rounded-xl p-2 -mx-2 transition-all"
+                        onClick={() => setSelectedOperatorName(op.name)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0",
+                            idx === 0 ? "bg-amber-500/20 text-amber-500" : 
+                            idx === 1 ? "bg-slate-400/20 text-slate-400" :
+                            idx === 2 ? "bg-amber-700/20 text-amber-700" : "bg-white/5 text-slate-500"
+                          )}>
+                            {idx + 1}º
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-white group-hover:text-primary transition-colors">{op.name}</p>
+                            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{op.count} remessas</span>
+                              {isTopPerformer && <span className="text-[9px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded font-bold">🔥 Top Performer</span>}
+                              {isFastest && <span className="text-[9px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded font-bold">⚡ Rápido</span>}
+                              {isPrecise && <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">🎯 Preciso</span>}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-white group-hover:text-primary transition-colors">{op.name}</p>
-                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{op.count} remessas</span>
+                        <div className="text-right">
+                          <p className="text-xs font-black text-accent-blue">{formatValue(`R$ ${op.profit.toFixed(2)}`)}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-black text-accent-blue">{formatValue(`R$ ${op.profit.toFixed(2)}`)}</p>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
@@ -984,6 +1006,108 @@ export default function TeamPage() {
           </Modal>
         </div>
       )}
+
+      {/* Operator CRM Profile Slide-in Panel */}
+      {selectedOperatorName && (() => {
+        const opRanking = stats.operatorsRanking;
+        const rankIdx = opRanking.findIndex(o => o.name === selectedOperatorName);
+        const op = opRanking[rankIdx];
+        if (!op) return null;
+        const opFeed = feed.filter(f => f.operator.name === selectedOperatorName);
+        const totalTeamProfit = stats.teamProfit || 1;
+        const productivity = totalTeamProfit > 0 ? Math.round((op.profit / totalTeamProfit) * 100) : 0;
+        const avgProfit = op.count > 0 ? op.profit / op.count : 0;
+        const teamAvgProfit = opRanking.length > 0 ? opRanking.reduce((s, o) => s + (o.count > 0 ? o.profit / o.count : 0), 0) / opRanking.length : 1;
+        const consistencyRate = teamAvgProfit > 0 ? Math.round((avgProfit / teamAvgProfit) * 100) : 0;
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 86400000);
+        const twoWeeksAgo = new Date(now.getTime() - 14 * 86400000);
+        const thisWeekProfit = opFeed.filter(f => new Date(f.createdAt) >= oneWeekAgo).reduce((s, f) => s + f.value, 0);
+        const lastWeekProfit = opFeed.filter(f => new Date(f.createdAt) >= twoWeeksAgo && new Date(f.createdAt) < oneWeekAgo).reduce((s, f) => s + f.value, 0);
+        const weeklyChange = lastWeekProfit > 0 ? Math.round(((thisWeekProfit - lastWeekProfit) / lastWeekProfit) * 100) : (thisWeekProfit > 0 ? 100 : 0);
+        const platformMap: Record<string, number> = {};
+        opFeed.forEach(f => { platformMap[f.platform] = (platformMap[f.platform] || 0) + f.value; });
+        const topPlatforms = Object.entries(platformMap).sort((a, b) => b[1] - a[1]).slice(0, 3);
+        const maxCount = Math.max(...opRanking.map(o => o.count), 1);
+        const maxAvg2 = Math.max(...opRanking.map(o => o.count > 0 ? o.profit / o.count : 0), 1);
+        const isTopPerformer = rankIdx === 0;
+        const isFastest = op.count === maxCount;
+        const isPrecise = avgProfit === maxAvg2 && !isTopPerformer;
+        return (
+          <>
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fade-in" onClick={() => setSelectedOperatorName(null)} />
+            <div className="fixed right-0 top-0 h-full w-full max-w-md bg-[#0e0506] border-l border-white/5 z-50 overflow-y-auto shadow-2xl animate-fade-in-up flex flex-col">
+              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-gradient-to-br from-primary/10 to-transparent">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center text-2xl font-black text-primary">{selectedOperatorName.charAt(0).toUpperCase()}</div>
+                  <div>
+                    <h2 className="text-lg font-black text-white uppercase tracking-tight">{selectedOperatorName}</h2>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="text-[9px] bg-white/5 border border-white/10 text-slate-400 px-2 py-0.5 rounded font-bold uppercase">#{rankIdx + 1}º Ranking</span>
+                      {isTopPerformer && <span className="text-[9px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded font-bold">🔥 Top Performer</span>}
+                      {isFastest && <span className="text-[9px] bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded font-bold">⚡ Rápido</span>}
+                      {isPrecise && <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">🎯 Preciso</span>}
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedOperatorName(null)} className="p-2 rounded-xl hover:bg-white/10 text-slate-400 transition-all"><X size={20} /></button>
+              </div>
+              <div className="p-8 space-y-8 flex-1">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="glass-card p-5 space-y-2">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Produtividade</p>
+                    <p className="text-2xl font-black text-primary">{productivity}%</p>
+                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(productivity, 100)}%` }} /></div>
+                    <p className="text-[9px] text-slate-600 font-bold">do lucro total da equipe</p>
+                  </div>
+                  <div className="glass-card p-5 space-y-2">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Remessas</p>
+                    <p className="text-2xl font-black text-accent-blue">{op.count}</p>
+                    <p className="text-[9px] text-slate-600 font-bold">tarefas concluídas</p>
+                  </div>
+                  <div className="glass-card p-5 space-y-2">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Consistência</p>
+                    <p className={cn("text-2xl font-black", consistencyRate >= 100 ? "text-accent-blue" : "text-amber-400")}>{consistencyRate}%</p>
+                    <p className="text-[9px] text-slate-600 font-bold">vs. média da equipe</p>
+                  </div>
+                  <div className="glass-card p-5 space-y-2">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Lucro Total</p>
+                    <p className={cn("text-sm font-black leading-snug", op.profit >= 0 ? "text-accent-blue" : "text-primary")}>{op.profit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                    <p className="text-[9px] text-slate-600 font-bold">acumulado histórico</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2"><BarChart2 size={16} className="text-primary" /><h3 className="text-xs font-bold text-white uppercase tracking-widest">Evolução Semanal</h3></div>
+                  <div className="glass-card p-5 flex items-center justify-between">
+                    <div><p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1">Esta semana</p><p className="text-xl font-black text-white">{thisWeekProfit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p></div>
+                    <div className="text-right"><p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1">vs. semana passada</p><div className={cn("flex items-center gap-1 justify-end font-black text-sm", weeklyChange >= 0 ? "text-accent-blue" : "text-primary")}>{weeklyChange >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />}{Math.abs(weeklyChange)}%</div></div>
+                  </div>
+                </div>
+                {topPlatforms.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2"><TrendingUp size={16} className="text-amber-500" /><h3 className="text-xs font-bold text-white uppercase tracking-widest">Plataformas Principais</h3></div>
+                    <div className="glass-card p-5 space-y-4">
+                      {topPlatforms.map(([platform, profit], i) => {
+                        const maxP = topPlatforms[0][1] || 1;
+                        return (<div key={platform} className="space-y-1.5"><div className="flex justify-between"><span className="text-xs font-bold text-white uppercase">{platform}</span><span className="text-xs font-black text-accent-blue">{(profit as number).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div><div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden"><div className={cn("h-full rounded-full", i === 0 ? "bg-amber-500" : i === 1 ? "bg-slate-400" : "bg-orange-500")} style={{ width: `${Math.max(((profit as number) / maxP) * 100, 5)}%` }} /></div></div>);
+                      })}
+                    </div>
+                  </div>
+                )}
+                {opFeed.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2"><Activity size={16} className="text-slate-400" /><h3 className="text-xs font-bold text-white uppercase tracking-widest">Última Atividade</h3></div>
+                    <div className="glass-card p-5 flex items-center justify-between">
+                      <div><p className="text-xs font-bold text-white uppercase">{opFeed[0].platform}</p><p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">{new Date(opFeed[0].createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p></div>
+                      <p className={cn("text-sm font-black", opFeed[0].value >= 0 ? "text-accent-blue" : "text-primary")}>{opFeed[0].value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
