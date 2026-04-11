@@ -69,42 +69,38 @@ const dateToYMD = (d: Date | string) => {
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (record: Omit<DailyRecord, 'id' | 'profit'>) => void;
+  onSave: (data: any) => void;
   editingRecord?: DailyRecord | null;
   selectedDate: Date;
 }
 
 function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: ModalProps) {
-  const [platform, setPlatform] = useState("");
-  const [investment, setInvestment] = useState("");
-  const [withdraw, setWithdraw] = useState("");
-  const [cycles, setCycles] = useState("");
+  const [cycles, setCycles] = useState([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }]);
 
   useEffect(() => {
     if (isOpen) {
       if (editingRecord) {
-        setPlatform(editingRecord.platform);
-        setInvestment(editingRecord.investment.toString());
-        setWithdraw(editingRecord.withdraw.toString());
-        setCycles(editingRecord.cycles);
+        setCycles([{ 
+          platform: editingRecord.platform, 
+          deposit: editingRecord.investment, 
+          withdraw: editingRecord.withdraw, 
+          bau: (editingRecord as any).bau || 0,
+          salary: (editingRecord as any).salary || 0,
+          observation: (editingRecord as any).observation || ""
+        }]);
       } else {
-        setPlatform("");
-        setInvestment("");
-        setWithdraw("");
-        setCycles("");
+        setCycles([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }]);
       }
     }
   }, [editingRecord, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      date: editingRecord?.date || selectedDate.toISOString(),
-      platform,
-      investment: parseFloat(investment) || 0,
-      withdraw: parseFloat(withdraw) || 0,
-      cycles,
-    });
+    if (editingRecord) {
+      onSave(cycles[0]);
+    } else {
+      onSave(cycles);
+    }
     onClose();
   };
 
@@ -115,64 +111,96 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
       title={editingRecord ? "Editar Registro" : "Adicionar Registro"}
       icon={<LucideActivity size={20} />}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Plataforma</label>
-            <input
-              required
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all placeholder:text-slate-700 font-bold"
-              placeholder="Ex: Pinup, BC.Game..."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+        {cycles.map((cycle, index) => (
+          <div key={index} className="space-y-4 p-4 border border-white/5 rounded-2xl bg-white/[0.02]">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-accent-cyan uppercase tracking-widest">Ciclo {index + 1}</span>
+              {!editingRecord && cycles.length > 1 && (
+                <button type="button" onClick={() => setCycles(cycles.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest">Remover</button>
+              )}
+            </div>
+            
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Investimento (R$)</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Plataforma</label>
               <input
                 required
-                type="number"
-                step="0.01"
-                value={investment}
-                onChange={(e) => setInvestment(e.target.value)}
-                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all font-bold"
-                placeholder="0,00"
+                value={cycle.platform}
+                onChange={(e) => {
+                  const newCycles = [...cycles];
+                  newCycles[index].platform = e.target.value;
+                  setCycles(newCycles);
+                }}
+                className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all placeholder:text-slate-700 font-bold"
+                placeholder="Ex: Pinup, BC.Game..."
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Saque (R$)</label>
-              <input
-                required
-                type="number"
-                step="0.01"
-                value={withdraw}
-                onChange={(e) => setWithdraw(e.target.value)}
-                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all font-bold"
-                placeholder="0,00"
-              />
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ciclos</label>
-            <input
-              required
-              value={cycles}
-              onChange={(e) => setCycles(e.target.value)}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all font-bold"
-              placeholder="Ex: 5 Ciclos"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Depósito (R$)</label>
+                <input required type="number" step="0.01" value={cycle.deposit || ''} onChange={(e) => {
+                  const newCycles = [...cycles];
+                  newCycles[index].deposit = parseFloat(e.target.value) || 0;
+                  setCycles(newCycles);
+                }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all font-bold" placeholder="0,00" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Saque (R$)</label>
+                <input required type="number" step="0.01" value={cycle.withdraw || ''} onChange={(e) => {
+                  const newCycles = [...cycles];
+                  newCycles[index].withdraw = parseFloat(e.target.value) || 0;
+                  setCycles(newCycles);
+                }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all font-bold" placeholder="0,00" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Baú (R$)</label>
+                <input required type="number" step="0.01" value={cycle.bau || ''} onChange={(e) => {
+                  const newCycles = [...cycles];
+                  newCycles[index].bau = parseFloat(e.target.value) || 0;
+                  setCycles(newCycles);
+                }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all font-bold" placeholder="0,00" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Salário (R$)</label>
+                <input required type="number" step="0.01" value={cycle.salary || ''} onChange={(e) => {
+                  const newCycles = [...cycles];
+                  newCycles[index].salary = parseFloat(e.target.value) || 0;
+                  setCycles(newCycles);
+                }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all font-bold" placeholder="0,00" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Observação</label>
+              <textarea value={cycle.observation} onChange={(e) => {
+                  const newCycles = [...cycles];
+                  newCycles[index].observation = e.target.value;
+                  setCycles(newCycles);
+                }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all h-20 resize-none font-bold" placeholder="Opcional..." />
+            </div>
           </div>
-        </div>
+        ))}
+
+        {!editingRecord && (
+          <button 
+            type="button" 
+            onClick={() => setCycles([...cycles, { platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }])}
+            className="w-full border border-dashed border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+          >
+            <Plus size={14} /> Adicionar novo ciclo
+          </button>
+        )}
 
         <div className="pt-4">
           <button
             type="submit"
             className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-[11px]"
           >
-            {editingRecord ? "Salvar Alterações" : "Adicionar Item"}
+            {editingRecord ? "Salvar Alterações" : `Adicionar ${cycles.length} Registro(s)`}
           </button>
         </div>
       </form>
@@ -278,7 +306,7 @@ export default function DailyControlPage() {
     setSelectedDate(d);
   };
 
-  const addOrUpdate = async (data: Omit<DailyRecord, 'id' | 'profit'>) => {
+  const addOrUpdate = async (data: any) => {
     try {
       if (editingRecord) {
         const { data: updated } = await api.put(`/daily-records/${editingRecord.id}`, data);
@@ -287,11 +315,9 @@ export default function DailyControlPage() {
           records: s.records.map(r => r.id === editingRecord.id ? updated : r) 
         } : s));
       } else {
-        const { data: added } = await api.post('/daily-records', { ...data, sheetId: activeSheetId });
-        setSheets(prev => prev.map(s => s.id === activeSheetId ? {
-          ...s,
-          records: [added, ...s.records]
-        } : s));
+        await api.post('/daily-records', { cycles: data, sheetId: activeSheetId, date: selectedDate });
+        const { data: sheetsData } = await api.get('/daily-sheets');
+        setSheets(sheetsData);
       }
     } catch (e) { console.error(e); }
   };

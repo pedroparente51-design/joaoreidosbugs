@@ -563,31 +563,57 @@ app.get("/api/daily-records", authenticate, (req, res) => __awaiter(void 0, void
 }));
 app.post("/api/daily-records", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { sheetId, date, platform, investment, withdraw, cycles } = req.body;
-        const profit = withdraw - investment;
-        const record = yield prisma.dailyRecord.create({
-            data: {
+        const { sheetId, date, cycles } = req.body;
+        if (!cycles || !Array.isArray(cycles) || cycles.length === 0) {
+            return res.status(400).json({ error: "No cycles provided" });
+        }
+        let totalProfit = 0;
+        const recordsToCreate = [];
+        const recordDate = date ? new Date(date) : new Date();
+        for (const c of cycles) {
+            const investment = Number(c.deposit) || 0;
+            const withdraw = Number(c.withdraw) || 0;
+            const bau = Number(c.bau) || 0;
+            const salary = Number(c.salary) || 0;
+            const profit = withdraw + bau + salary - investment;
+            totalProfit += profit;
+            recordsToCreate.push({
                 sheetId: Number(sheetId),
-                date: new Date(date),
-                platform, investment, withdraw, cycles, profit
-            }
+                date: recordDate,
+                platform: c.platform || "Desconhecida",
+                investment,
+                withdraw,
+                bau,
+                salary,
+                cycles: "1",
+                profit,
+                observation: c.observation || null
+            });
+        }
+        yield prisma.dailyRecord.createMany({
+            data: recordsToCreate
         });
-        res.json(record);
-        // Send push notification
-        const formattedProfit = profit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        sendPushNotification(req.user.userId, "Remessa registrada!", `Novo registro em ${platform}: Lucro de ${formattedProfit}`).catch(e => console.error("Notification error:", e));
+        res.json({ success: true, totalProfit, cyclesProcessed: cycles.length });
+        // Send aggregated push notification
+        const formattedProfit = totalProfit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        sendPushNotification(req.user.userId, "Remessa registrada!", `Novo registro de ${cycles.length} ciclo(s): Lucro Total de ${formattedProfit}`).catch(e => console.error("Notification error:", e));
     }
     catch (error) {
+        console.error("Create daily-record error:", error);
         res.status(500).json({ error: "Internal error" });
     }
 }));
 app.put("/api/daily-records/:id", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { date, platform, investment, withdraw, cycles } = req.body;
-        const profit = withdraw - investment;
+        const { platform, deposit, withdraw, bau, salary, observation } = req.body;
+        const inv = Number(deposit) || 0;
+        const wd = Number(withdraw) || 0;
+        const b = Number(bau) || 0;
+        const s = Number(salary) || 0;
+        const profit = wd + b + s - inv;
         const record = yield prisma.dailyRecord.update({
             where: { id: Number(req.params.id) },
-            data: { date: new Date(date), platform, investment, withdraw, cycles, profit }
+            data: { platform, investment: inv, withdraw: wd, bau: b, salary: s, observation, profit }
         });
         res.json(record);
     }
@@ -871,23 +897,54 @@ app.delete("/api/teams/goals/:id", authenticate, (req, res) => __awaiter(void 0,
 }));
 app.post("/api/teams/remittance", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { teamId, platform, deposit, withdraw, cycles, observation } = req.body;
-        // Calcula o lucro real (Remessa) como Saque - Depósito
-        const calculatedValue = (Number(withdraw) || 0) - (Number(deposit) || 0);
-        const remittance = yield prisma.teamRemittance.create({
-            data: {
+        const { teamId, cycles } = req.body;
+        if (!cycles || !Array.isArray(cycles) || cycles.length === 0) {
+            return res.status(400).json({ error: "No cycles provided" });
+        }
+        let totalProfit = 0;
+        const remittancesToCreate = [];
+        const platformsCount = {};
+        for (const c of cycles) {
+            const deposit = Number(c.deposit) || 0;
+            const withdraw = Number(c.withdraw) || 0;
+            const bau = Number(c.bau) || 0;
+            const salary = Number(c.salary) || 0;
+            const calculatedValue = withdraw + bau + salary - deposit;
+            totalProfit += calculatedValue;
+            const platformStr = c.platform || "Desconhecida";
+            platformsCount[platformStr] = (platformsCount[platformStr] || 0) + 1;
+            remittancesToCreate.push({
                 teamId: Number(teamId),
                 operatorId: req.user.userId,
-                platform,
-                deposit: Number(deposit) || 0,
-                withdraw: Number(withdraw) || 0,
-                cycles: String(cycles || ""),
+                platform: platformStr,
+                deposit,
+                withdraw,
+                bau,
+                salary,
+                cycles: "1", // Cada iteração representa 1 ciclo
                 value: calculatedValue,
-                observation
-            }
+                observation: c.observation || null
+            });
+        }
+        // Insert all remittances in a single transaction
+        yield prisma.teamRemittance.createMany({
+            data: remittancesToCreate
         });
-        res.json(remittance);
-        // Send push notification to all team members
+        // Update team operations (bar target) per platform
+        for (const [platform, count] of Object.entries(platformsCount)) {
+            const activeOp = yield prisma.teamOperation.findFirst({
+                where: { teamId: Number(teamId), platform },
+                orderBy: { createdAt: 'desc' }
+            });
+            if (activeOp) {
+                yield prisma.teamOperation.update({
+                    where: { id: activeOp.id },
+                    data: { depositors: activeOp.depositors + count }
+                });
+            }
+        }
+        res.json({ success: true, totalProfit, cyclesProcessed: cycles.length });
+        // Send aggregated push notification to all team members
         try {
             const teamMembers = yield prisma.teamMember.findMany({
                 where: { teamId: Number(teamId) },
@@ -895,10 +952,9 @@ app.post("/api/teams/remittance", authenticate, (req, res) => __awaiter(void 0, 
             });
             const operator = teamMembers.find((m) => m.userId === req.user.userId);
             const operatorName = operator ? operator.user.name : "Alguém";
-            const formattedProfit = calculatedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const formattedProfit = totalProfit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             const notificationTitle = "Remessa registrada!";
-            const notificationBody = `Op. ${operatorName} finalizou remessa - Lucro ${formattedProfit}`;
-            // Notify everyone in the team
+            const notificationBody = `Op. ${operatorName} finalizou ${cycles.length} remessa(s) - Lucro Total ${formattedProfit}`;
             const notificationPromises = teamMembers.map((m) => sendPushNotification(m.userId, notificationTitle, notificationBody)
                 .catch(e => console.error(`Error notifying user ${m.userId}:`, e)));
             yield Promise.all(notificationPromises);

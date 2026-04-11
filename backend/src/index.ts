@@ -551,34 +551,71 @@ app.get("/api/daily-records", authenticate, async (req: any, res: any) => {
 
 app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
   try {
-    const { sheetId, date, platform, investment, withdraw, cycles } = req.body;
-    const profit = withdraw - investment;
-    const record = await prisma.dailyRecord.create({
-      data: {
-        sheetId: Number(sheetId),
-        date: new Date(date),
-        platform, investment, withdraw, cycles, profit
-      }
-    });
-    res.json(record);
+    const { sheetId, date, cycles } = req.body;
 
-    // Send push notification
-    const formattedProfit = profit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    if (!cycles || !Array.isArray(cycles) || cycles.length === 0) {
+      return res.status(400).json({ error: "No cycles provided" });
+    }
+
+    let totalProfit = 0;
+    const recordsToCreate: any[] = [];
+    const recordDate = date ? new Date(date) : new Date();
+
+    for (const c of cycles) {
+      const investment = Number(c.deposit) || 0;
+      const withdraw = Number(c.withdraw) || 0;
+      const bau = Number(c.bau) || 0;
+      const salary = Number(c.salary) || 0;
+      
+      const profit = withdraw + bau + salary - investment;
+      totalProfit += profit;
+
+      recordsToCreate.push({
+        sheetId: Number(sheetId),
+        date: recordDate,
+        platform: c.platform || "Desconhecida",
+        investment,
+        withdraw,
+        bau,
+        salary,
+        cycles: "1",
+        profit,
+        observation: c.observation || null
+      });
+    }
+
+    await prisma.dailyRecord.createMany({
+      data: recordsToCreate
+    });
+
+    res.json({ success: true, totalProfit, cyclesProcessed: cycles.length });
+
+    // Send aggregated push notification
+    const formattedProfit = totalProfit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     sendPushNotification(
       req.user.userId,
       "Remessa registrada!",
-      `Novo registro em ${platform}: Lucro de ${formattedProfit}`
+      `Novo registro de ${cycles.length} ciclo(s): Lucro Total de ${formattedProfit}`
     ).catch(e => console.error("Notification error:", e));
-  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+  } catch (error) { 
+    console.error("Create daily-record error:", error);
+    res.status(500).json({ error: "Internal error" }); 
+  }
 });
 
 app.put("/api/daily-records/:id", authenticate, async (req: any, res: any) => {
   try {
-    const { date, platform, investment, withdraw, cycles } = req.body;
-    const profit = withdraw - investment;
+    const { platform, deposit, withdraw, bau, salary, observation } = req.body;
+    const inv = Number(deposit) || 0;
+    const wd = Number(withdraw) || 0;
+    const b = Number(bau) || 0;
+    const s = Number(salary) || 0;
+    
+    const profit = wd + b + s - inv;
+    
     const record = await prisma.dailyRecord.update({
       where: { id: Number(req.params.id) },
-      data: { date: new Date(date), platform, investment, withdraw, cycles, profit }
+      data: { platform, investment: inv, withdraw: wd, bau: b, salary: s, observation, profit }
     });
     res.json(record);
   } catch (error) { res.status(500).json({ error: "Internal error" }); }
@@ -869,26 +906,64 @@ app.delete("/api/teams/goals/:id", authenticate, async (req: any, res: any) => {
 
 app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
   try {
-    const { teamId, platform, deposit, withdraw, cycles, observation } = req.body;
+    const { teamId, cycles } = req.body;
     
-    // Calcula o lucro real (Remessa) como Saque - Depósito
-    const calculatedValue = (Number(withdraw) || 0) - (Number(deposit) || 0);
+    if (!cycles || !Array.isArray(cycles) || cycles.length === 0) {
+      return res.status(400).json({ error: "No cycles provided" });
+    }
 
-    const remittance = await prisma.teamRemittance.create({
-      data: { 
+    let totalProfit = 0;
+    const remittancesToCreate: any[] = [];
+    const platformsCount: Record<string, number> = {};
+
+    for (const c of cycles) {
+      const deposit = Number(c.deposit) || 0;
+      const withdraw = Number(c.withdraw) || 0;
+      const bau = Number(c.bau) || 0;
+      const salary = Number(c.salary) || 0;
+      
+      const calculatedValue = withdraw + bau + salary - deposit;
+      totalProfit += calculatedValue;
+      
+      const platformStr = c.platform || "Desconhecida";
+      platformsCount[platformStr] = (platformsCount[platformStr] || 0) + 1;
+
+      remittancesToCreate.push({
         teamId: Number(teamId),
         operatorId: req.user.userId,
-        platform,
-        deposit: Number(deposit) || 0,
-        withdraw: Number(withdraw) || 0,
-        cycles: String(cycles || ""),
+        platform: platformStr,
+        deposit,
+        withdraw,
+        bau,
+        salary,
+        cycles: "1", // Cada iteração representa 1 ciclo
         value: calculatedValue,
-        observation
-      }
-    });
-    res.json(remittance);
+        observation: c.observation || null
+      });
+    }
 
-    // Send push notification to all team members
+    // Insert all remittances in a single transaction
+    await prisma.teamRemittance.createMany({
+      data: remittancesToCreate
+    });
+    
+    // Update team operations (bar target) per platform
+    for (const [platform, count] of Object.entries(platformsCount)) {
+      const activeOp = await prisma.teamOperation.findFirst({
+        where: { teamId: Number(teamId), platform },
+        orderBy: { createdAt: 'desc' }
+      });
+      if (activeOp) {
+        await prisma.teamOperation.update({
+          where: { id: activeOp.id },
+          data: { depositors: activeOp.depositors + count }
+        });
+      }
+    }
+
+    res.json({ success: true, totalProfit, cyclesProcessed: cycles.length });
+
+    // Send aggregated push notification to all team members
     try {
       const teamMembers = await prisma.teamMember.findMany({ 
         where: { teamId: Number(teamId) },
@@ -898,11 +973,10 @@ app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
       const operator = teamMembers.find((m: any) => m.userId === req.user.userId);
       const operatorName = operator ? operator.user.name : "Alguém";
       
-      const formattedProfit = calculatedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const formattedProfit = totalProfit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       const notificationTitle = "Remessa registrada!";
-      const notificationBody = `Op. ${operatorName} finalizou remessa - Lucro ${formattedProfit}`;
+      const notificationBody = `Op. ${operatorName} finalizou ${cycles.length} remessa(s) - Lucro Total ${formattedProfit}`;
       
-      // Notify everyone in the team
       const notificationPromises = teamMembers.map((m: any) => 
         sendPushNotification(m.userId, notificationTitle, notificationBody)
           .catch(e => console.error(`Error notifying user ${m.userId}:`, e))

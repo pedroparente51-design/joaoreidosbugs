@@ -121,7 +121,7 @@ export default function TeamPage() {
   // Forms State
   const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: "", average: "", depositors: "", operatorName: "" });
   const [goalForm, setGoalForm] = useState({ platform: "", target: 0 });
-  const [remitForm, setRemitForm] = useState({ platform: "", deposit: 0, withdraw: 0, cycles: "", observation: "" });
+  const [remitCycles, setRemitCycles] = useState([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }]);
   const [expenseForm, setExpenseForm] = useState({ name: "", amount: 0, category: "Proxy", date: new Date().toISOString().split('T')[0] });
 
   const userRole = useMemo(() => {
@@ -226,12 +226,12 @@ export default function TeamPage() {
     e.preventDefault();
     if (!team) return;
     try {
-      await api.post("/teams/remittance", { ...remitForm, teamId: team.id });
+      await api.post("/teams/remittance", { teamId: team.id, cycles: remitCycles });
       fetchDashboardData(team.id);
-      setRemitForm({ platform: "", deposit: 0, withdraw: 0, cycles: "", observation: "" });
+      setRemitCycles([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }]);
       setIsRemitModalOpen(false);
-      alert("Remessa registrada com sucesso!");
-    } catch (e) { alert("Erro ao registrar remessa"); }
+      alert("Remessas registradas com sucesso!");
+    } catch (e) { alert("Erro ao registrar remessas"); }
   };
 
   const submitExpense = async (e: React.FormEvent) => {
@@ -716,41 +716,90 @@ export default function TeamPage() {
             title="Nova Remessa"
             icon={<CircleDollarSign size={20} />}
           >
-            <form onSubmit={submitRemittance} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Plataforma</label>
-                <select 
-                  required 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" 
-                  value={remitForm.platform} 
-                  onChange={e => setRemitForm({ ...remitForm, platform: e.target.value })}
-                >
-                  <option value="" className="text-black">Selecione uma plataforma</option>
-                  {[...new Set(operations.map(op => op.platform))].map(plat => (
-                    <option key={plat} value={plat} className="text-black">
-                      {plat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Depósito (R$)</label>
-                  <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={remitForm.deposit} onChange={e => setRemitForm({ ...remitForm, deposit: parseFloat(e.target.value) || 0 })} />
+            <form onSubmit={submitRemittance} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+              {remitCycles.map((cycle, index) => (
+                <div key={index} className="space-y-4 p-4 border border-white/5 rounded-2xl bg-white/[0.02]">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-accent-cyan uppercase tracking-widest">Ciclo {index + 1}</span>
+                    {remitCycles.length > 1 && (
+                      <button type="button" onClick={() => setRemitCycles(remitCycles.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest">Remover</button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Plataforma</label>
+                    <select 
+                      required 
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" 
+                      value={cycle.platform} 
+                      onChange={e => {
+                        const newCycles = [...remitCycles];
+                        newCycles[index].platform = e.target.value;
+                        setRemitCycles(newCycles);
+                      }}
+                    >
+                      <option value="" className="text-black">Selecione uma plataforma</option>
+                      {[...new Set(operations.map(op => op.platform))].map(plat => (
+                        <option key={plat} value={plat} className="text-black">
+                          {plat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Depósito (R$)</label>
+                      <input type="number" step="0.01" required className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.deposit || ''} onChange={e => {
+                        const newCycles = [...remitCycles];
+                        newCycles[index].deposit = parseFloat(e.target.value) || 0;
+                        setRemitCycles(newCycles);
+                      }} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Saque (R$)</label>
+                      <input type="number" step="0.01" required className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.withdraw || ''} onChange={e => {
+                        const newCycles = [...remitCycles];
+                        newCycles[index].withdraw = parseFloat(e.target.value) || 0;
+                        setRemitCycles(newCycles);
+                      }} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Baú (R$)</label>
+                      <input type="number" step="0.01" required className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.bau || ''} onChange={e => {
+                        const newCycles = [...remitCycles];
+                        newCycles[index].bau = parseFloat(e.target.value) || 0;
+                        setRemitCycles(newCycles);
+                      }} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Salário (R$)</label>
+                      <input type="number" step="0.01" required className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.salary || ''} onChange={e => {
+                        const newCycles = [...remitCycles];
+                        newCycles[index].salary = parseFloat(e.target.value) || 0;
+                        setRemitCycles(newCycles);
+                      }} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Observação</label>
+                    <textarea className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50 h-20 resize-none" placeholder="Opcional..." value={cycle.observation} onChange={e => {
+                      const newCycles = [...remitCycles];
+                      newCycles[index].observation = e.target.value;
+                      setRemitCycles(newCycles);
+                    }} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Saque (R$)</label>
-                  <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={remitForm.withdraw} onChange={e => setRemitForm({ ...remitForm, withdraw: parseFloat(e.target.value) || 0 })} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Qtd de Ciclos</label>
-                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 5" value={remitForm.cycles} onChange={e => setRemitForm({ ...remitForm, cycles: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Observação</label>
-                <textarea className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50 h-24 resize-none" placeholder="Opcional..." value={remitForm.observation} onChange={e => setRemitForm({ ...remitForm, observation: e.target.value })} />
-              </div>
+              ))}
+              
+              <button 
+                type="button" 
+                onClick={() => setRemitCycles([...remitCycles, { platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }])}
+                className="w-full border border-dashed border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={14} /> Adicionar novo ciclo
+              </button>
+              
               <button type="submit" className="w-full bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">ENVIAR REMESSA</button>
             </form>
           </Modal>

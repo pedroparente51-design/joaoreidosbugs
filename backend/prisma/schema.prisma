@@ -97,6 +97,7 @@ model TeamRemittance {
   deposit     Float    @default(0.0)
   withdraw    Float    @default(0.0)
   bau         Float    @default(0.0)
+  salary      Float    @default(0.0)
   cycles      String?
   value       Float
   observation String?
@@ -124,7 +125,10 @@ model DailyRecord {
   platform   String
   investment Float
   withdraw   Float
+  bau        Float      @default(0.0)
+  salary     Float      @default(0.0)
   cycles     String
+  observation String?
   sheetId    Int
   createdAt  DateTime   @default(now())
   profit     Float      @default(0.0)
