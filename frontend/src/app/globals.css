@@ -1,39 +1,33 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --color-background: #02000f;
-    --color-surface: rgba(15, 11, 0, 0.6);
-    --color-surface-hover: rgba(255, 255, 255, 0.05);
-    
-    --color-primary: #fbbf24;
-    --color-primary-glow: rgba(251, 191, 36, 0.3);
-    
-    --color-slate-400: #94a3b8;
-    --color-slate-500: #64748b;
-    --color-slate-900: #0f172a;
-    --color-slate-950: #020617;
-    
-    --color-accent-blue: #0ea5e9;
-    --color-accent-emerald: #10b981;
-    --color-accent-gold: #fbbf24;
-    
-    --font-sans: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
-    --font-mono: var(--font-mono), "Space Grotesk", monospace;
-    
-    --shadow-neon: 0 0 20px rgba(251, 191, 36, 0.2);
+@theme {
+  --color-background: #02000f;
+  --color-surface: rgba(15, 11, 0, 0.6);
+  --color-surface-hover: rgba(255, 255, 255, 0.05);
+  
+  --color-primary: #fbbf24;
+  --color-primary-glow: rgba(251, 191, 36, 0.3);
+  
+  /* Slate shades for hierarchy */
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+  
+  --color-accent-blue: #0ea5e9;
+  --color-accent-emerald: #10b981;
+  --color-accent-gold: #fbbf24;
+  
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: var(--font-mono), "Space Grotesk", monospace;
+  
+  --shadow-neon: 0 0 20px rgba(251, 191, 36, 0.2);
 
-    --sidebar-base: #0f0b00;
-    --header-bg: rgba(2, 0, 15, 0.7);
-    --glow-base: #1a1300;
+  --sidebar-base: #0f0b00;
+  --header-bg: rgba(2, 0, 15, 0.7);
+  --glow-base: #1a1300;
 
-    --background-mesh: radial-gradient(at 0% 0%, rgba(251,191,36,0.1) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(0,240,255,0.05) 0px, transparent 50%);
-    
-    --background: #02000f;
-    --foreground: #f8fafc;
-  }
+  --background-mesh: radial-gradient(at 0% 0%, rgba(251,191,36,0.1) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(0,240,255,0.05) 0px, transparent 50%);
 }
 
 @layer base {

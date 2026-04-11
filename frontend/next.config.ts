@@ -1,17 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  cleanDistDir: true,
-  trailingSlash: true,
-  async redirects() {
+  async rewrites() {
     return [
       {
-        source: '/',
-        destination: '/login',
-        permanent: true,
-      },
+        source: '/api/:path*',
+        destination: process.env.NEXT_PUBLIC_API_URL 
+          ? `${process.env.NEXT_PUBLIC_API_URL}/api/:path*` 
+          : 'http://localhost:3001/api/:path*'
+      }
     ]
-  },
+  }
 };
 
 export default nextConfig;
