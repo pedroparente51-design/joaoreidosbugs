@@ -236,8 +236,8 @@ const sendPushNotification = async (userId: number, title: string, body: string)
   const payload = JSON.stringify({ 
     title, 
     body,
-    icon: '/img/logo1.png',
-    badge: '/img/logo1.png'
+    icon: '/img/logo1.ico',
+    badge: '/img/logo1.ico'
   });
 
   const notifications = subscriptions.map(sub => {
@@ -566,6 +566,9 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
     const recordsToCreate: any[] = [];
     const recordDate = date ? new Date(date) : new Date();
 
+    const sheet = await prisma.dailySheet.findUnique({ where: { id: Number(sheetId) } });
+    const platformName = sheet ? sheet.name : "Desconhecida";
+
     for (const c of cycles) {
       const investment = Number(c.deposit) || 0;
       const withdraw = Number(c.withdraw) || 0;
@@ -578,7 +581,7 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
       recordsToCreate.push({
         sheetId: Number(sheetId),
         date: recordDate,
-        platform: c.platform || "Desconhecida",
+        platform: platformName,
         investment,
         withdraw,
         bau,
@@ -618,9 +621,12 @@ app.put("/api/daily-records/:id", authenticate, async (req: any, res: any) => {
     
     const profit = wd + b + s;
     
+    const recordBefore = await prisma.dailyRecord.findUnique({ where: { id: Number(req.params.id) }, include: { sheet: true } });
+    const platformUpdated = recordBefore?.sheet?.name || "Desconhecida";
+
     const record = await prisma.dailyRecord.update({
       where: { id: Number(req.params.id) },
-      data: { platform, investment: inv, withdraw: wd, bau: b, salary: s, observation, profit }
+      data: { platform: platformUpdated, investment: inv, withdraw: wd, bau: b, salary: s, observation, profit }
     });
     res.json(record);
   } catch (error) { res.status(500).json({ error: "Internal error" }); }
