@@ -572,7 +572,7 @@ export default function TeamPage() {
       {activeTab === "OPERATIONS" && (
         <div className="space-y-8 animate-fade-in-up">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Fluxo de Operações</h2>
+            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Operações da Equipe</h2>
             {canManage && (
               <button 
                 onClick={() => setIsOpModalOpen(true)} 
@@ -583,41 +583,39 @@ export default function TeamPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 space-y-6">
-              <div className="glass-card p-8 space-y-6">
-                <div className="space-y-1"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Total de Metas</p><p className="text-3xl font-black text-white">{stats.goalsCount}</p></div>
-                <div className="space-y-1"><p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Remessas Pagas</p><p className="text-3xl font-black text-accent-cyan">{formatValue(`R$ ${stats.teamProfit?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || "0,00"}`)}</p></div>
-              </div>
-            </div>
-            <div className="lg:col-span-2 space-y-6">
-              <div className="flex items-center gap-3"><Zap size={18} className="text-primary" /><h2 className="text-sm font-bold text-white uppercase tracking-widest">Histórico de Operações</h2></div>
-              <div className="glass-card overflow-hidden">
-                {operations.length === 0 ? (
-                  <div className="p-20 text-center opacity-30 italic text-sm">Nenhuma operação registrada...</div>
-                ) : (
-                  <div className="divide-y divide-white/5">
-                    {operations.map(op => (
-                      <div key={op.id} className="p-6 flex items-center justify-between group hover:bg-white/[0.01] transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-white/5 rounded-xl text-slate-400 group-hover:text-primary transition-colors"><Zap size={18} /></div>
-                          <div>
-                            <p className="text-sm font-black text-white uppercase tracking-tight">PLATAFORMA: {op.platform}</p>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                              REDE: {op.network} • APOSTAS: {op.bets} • MÉDIA: {formatValue(`R$ ${op.average.toFixed(2)}`)} • {op.depositors} DEPOSITANTES • OPERADOR: {op.operatorName || "SISTEMA"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{new Date(op.createdAt).toLocaleDateString()}</p>
-                        </div>
+          {operations.length === 0 ? (
+            <div className="glass-card p-20 text-center opacity-30 italic text-sm">Nenhuma operação registrada.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {operations.map(op => {
+                const pct = op.depositors > 0 ? Math.min(100, Math.round((op.depositors / (Number((op as any).target) || op.depositors)) * 100)) : 0;
+                return (
+                  <div key={op.id} className="glass-card p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-black text-white uppercase tracking-tight">{op.platform}</p>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Rede: {op.network} • {op.operatorName || "Sistema"}</p>
                       </div>
-                    ))}
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-lg">{new Date(op.createdAt).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="bg-white/[0.03] rounded-xl p-3"><p className="text-[9px] text-slate-500 font-bold uppercase">Apostas</p><p className="text-lg font-black text-white">{op.bets}</p></div>
+                      <div className="bg-white/[0.03] rounded-xl p-3"><p className="text-[9px] text-slate-500 font-bold uppercase">Média</p><p className="text-lg font-black text-white">R${op.average}</p></div>
+                      <div className="bg-white/[0.03] rounded-xl p-3"><p className="text-[9px] text-slate-500 font-bold uppercase">Dep.</p><p className="text-lg font-black text-accent-blue">{op.depositors}</p></div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        <span>Progresso da Meta</span><span>{pct}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
+                );
+              })}
             </div>
-          </div>
+          )}
 
           <Modal 
             isOpen={isOpModalOpen} 
@@ -675,12 +673,7 @@ export default function TeamPage() {
               </div>
               <div className="space-y-2 md:col-span-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do Operador</label>
-                <select 
-                  required 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" 
-                  value={opForm.operatorName} 
-                  onChange={e => setOpForm({ ...opForm, operatorName: e.target.value })}
-                >
+                <select required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" value={opForm.operatorName} onChange={e => setOpForm({ ...opForm, operatorName: e.target.value })}>
                   <option value="" className="text-black">Escolha um operador</option>
                   {members.map(m => (
                     <option key={m.id} value={m.name} className="text-black">{m.name}</option>
