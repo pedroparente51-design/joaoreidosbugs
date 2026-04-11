@@ -603,7 +603,7 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
     sendPushNotification(
       req.user.userId,
       "Remessa registrada!",
-      `Novo registro de ${cycles.length} ciclo(s): Lucro Total de ${formattedProfit}`
+      `Novo registro de ${cycles.length} depositante(s): Lucro Total de ${formattedProfit}`
     ).catch(e => console.error("Notification error:", e));
   } catch (error) { 
     console.error("Create daily-record error:", error);
@@ -1000,7 +1000,7 @@ app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
       
       const formattedProfit = totalProfit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       const notificationTitle = "Remessa registrada!";
-      const notificationBody = `Op. ${operatorName} finalizou ${cycles.length} remessa(s) - Lucro Total ${formattedProfit}`;
+      const notificationBody = `Op. ${operatorName} finalizou ${cycles.length} depositante(s) - Lucro Total ${formattedProfit}`;
       
       const notificationPromises = teamMembers.map((m: any) => 
         sendPushNotification(m.userId, notificationTitle, notificationBody)
