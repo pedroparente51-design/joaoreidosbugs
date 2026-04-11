@@ -119,7 +119,7 @@ export default function TeamPage() {
   const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false);
 
   // Forms State
-  const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: "", average: "", depositors: "", target: "", operatorName: "" });
+  const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: "", average: "", depositors: "", operatorName: "" });
   const [goalForm, setGoalForm] = useState({ platform: "", target: 0 });
   const [remitForm, setRemitForm] = useState({ platform: "", deposit: 0, withdraw: 0, cycles: "", observation: "" });
   const [expenseForm, setExpenseForm] = useState({ name: "", amount: 0, category: "Proxy", date: new Date().toISOString().split('T')[0] });
@@ -208,9 +208,15 @@ export default function TeamPage() {
     e.preventDefault();
     if (!team) return;
     try {
-      await api.post("/teams/operations", { ...opForm, teamId: team.id });
+      const finalPlatform = `${opForm.platform} - OP. ${opForm.operatorName}`;
+      await api.post("/teams/operations", { 
+        ...opForm, 
+        platform: finalPlatform,
+        target: opForm.depositors, // Meta = Depositantes
+        teamId: team.id 
+      });
       alert("Operação e Meta registradas!");
-      setOpForm({ platform: "", network: "WE", bets: "", average: "", depositors: "", target: "", operatorName: "" });
+      setOpForm({ platform: "", network: "WE", bets: "", average: "", depositors: "", operatorName: "" });
       setIsOpModalOpen(false);
       fetchDashboardData(team.id); // Refresh operations list
     } catch (e) { alert("Erro ao registrar operação"); }
@@ -589,13 +595,19 @@ export default function TeamPage() {
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Depositantes</label>
                 <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 10" value={opForm.depositors} onChange={e => setOpForm({ ...opForm, depositors: e.target.value })} />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Meta de Remessas (Ciclos)</label>
-                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 50" value={opForm.target} onChange={e => setOpForm({ ...opForm, target: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 md:col-span-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do Operador</label>
-                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: João Silva" value={opForm.operatorName} onChange={e => setOpForm({ ...opForm, operatorName: e.target.value })} />
+                <select 
+                  required 
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" 
+                  value={opForm.operatorName} 
+                  onChange={e => setOpForm({ ...opForm, operatorName: e.target.value })}
+                >
+                  <option value="" className="text-black">Escolha um operador</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.name} className="text-black">{m.name}</option>
+                  ))}
+                </select>
               </div>
               <button type="submit" className="md:col-span-2 bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">PUBLICAR OPERAÇÃO E ESTABELECER META</button>
             </form>
