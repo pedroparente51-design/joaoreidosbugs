@@ -17,7 +17,8 @@ import {
   Trash2,
   Edit2,
   Zap,
-  Receipt
+  Receipt,
+  TrendingDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -721,52 +722,93 @@ export default function TeamPage() {
 
       {activeTab === "EXPENSES" && (
         <div className="animate-fade-in-up space-y-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Despesas da Equipe</h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-primary/10 rounded-2xl text-primary border border-primary/20">
+                <Receipt size={24} />
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-xl font-black text-white tracking-tight uppercase">Despesas</h1>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Controle seus custos fixos e variáveis da equipe {team?.name} com precisão.</p>
+              </div>
+            </div>
+            
             {canManage && (
               <button 
-                onClick={() => setIsExpenseModalOpen(true)} 
-                className="bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-primary/20"
+                onClick={() => setIsExpenseModalOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-neon"
               >
-                <Plus size={16} /> Nova Despesa
+                <Plus size={18} /> Nova Despesa
               </button>
             )}
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div className="glass-card p-8 flex flex-col gap-4">
+                <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Total Gastos</span>
+                <p className="text-4xl font-black text-white tracking-tighter">
+                   {formatValue(`R$ ${(teamExpenses.reduce((acc, curr) => acc + curr.amount, 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}
+                </p>
+             </div>
+             <div className="glass-card p-8 flex flex-col gap-4 border-l-4 border-l-primary/40">
+                <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Impacto no Lucro</span>
+                <div className="flex items-center gap-2">
+                   <TrendingDown size={18} className="text-primary" />
+                   <p className="text-2xl font-black text-primary tracking-tighter">Negativo</p>
+                </div>
+             </div>
+             <div className="glass-card p-8 flex flex-col gap-4">
+                <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Itens Registrados</span>
+                <p className="text-4xl font-black text-white tracking-tighter">{teamExpenses.length}</p>
+             </div>
+          </div>
+
           <div className="glass-card overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-white/5 border-b border-white/5">
-                <tr>
-                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Despesa</th>
-                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Categoria</th>
-                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Valor</th>
-                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Registrado por</th>
-                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data</th>
-                  {canManage && <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Ações</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {teamExpenses.map(exp => (
-                  <tr key={exp.id} className="hover:bg-white/[0.01] transition-colors group">
-                    <td className="px-6 py-4 text-xs font-bold text-white uppercase">{exp.name}</td>
-                    <td className="px-6 py-4">
-                      <span className="text-[10px] px-2 py-1 bg-white/5 rounded-md text-slate-400 font-bold uppercase">{exp.category}</span>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-bold text-red-500">{formatValue(`R$ ${exp.amount.toFixed(2)}`)}</td>
-                    <td className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{exp.user.name}</td>
-                    <td className="px-6 py-4 text-[10px] text-slate-500">{new Date(exp.date).toLocaleDateString()}</td>
-                    {canManage && (
-                      <td className="px-6 py-4">
-                        <button onClick={() => deleteTeamExpense(exp.id)} className="p-2 text-slate-500 hover:text-red-500 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.02]">
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Item</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Categoria</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Data</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-primary uppercase tracking-widest text-right">Valor</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {teamExpenses.length === 0 && <div className="p-20 text-center opacity-30 italic text-sm">Nenhuma despesa registrada...</div>}
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {teamExpenses.length === 0 ? (
+                    <tr>
+                       <td colSpan={5} className="px-8 py-20 text-center text-slate-600 font-medium italic">Nenhuma despesa cadastrada.</td>
+                    </tr>
+                  ) : (
+                    teamExpenses.map(exp => (
+                      <tr key={exp.id} className="group hover:bg-white/[0.02] transition-colors">
+                        <td className="px-8 py-6 text-sm font-bold text-white uppercase">{exp.name}</td>
+                        <td className="px-8 py-6">
+                          <span className="text-[10px] font-black text-slate-400 bg-white/5 px-2 py-1 rounded border border-white/5 uppercase">
+                            {exp.category}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 text-[11px] text-slate-500 font-bold uppercase">{new Date(exp.date).toLocaleDateString()}</td>
+                        <td className="px-8 py-6 text-sm font-black text-white text-right font-mono">
+                           {formatValue(`R$ ${exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                           {canManage && (
+                             <button 
+                               onClick={() => deleteTeamExpense(exp.id)}
+                               className="p-2 hover:bg-primary/10 rounded-lg text-primary opacity-0 group-hover:opacity-100 transition-all"
+                             >
+                               <Trash2 size={16} />
+                             </button>
+                           )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <Modal 

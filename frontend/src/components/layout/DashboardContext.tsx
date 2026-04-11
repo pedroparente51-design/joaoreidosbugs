@@ -20,6 +20,7 @@ interface DashboardContextType {
   toasts: Toast[];
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
+  subscribeToPush: () => Promise<void>;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -91,6 +92,43 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const subscribeToPush = async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.warn("Push notifications not supported");
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker registered:', registration);
+
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.warn("Notification permission denied");
+        return;
+      }
+
+      const api = (await import('@/lib/api')).default;
+      const { data: { publicKey } } = await api.get('/notifications/public-key');
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey
+      });
+
+      await api.post('/notifications/subscribe', subscription);
+      console.log("User subscribed to push notifications");
+    } catch (error) {
+      console.error("Failed to subscribe to push notifications:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      subscribeToPush();
+    }
+  }, []);
+
   useEffect(() => {
     const runSimulation = () => {
       const delay = Math.floor(Math.random() * 10000) + 5000;
@@ -125,7 +163,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       refreshUser,
       toasts,
       addToast,
-      removeToast
+      removeToast,
+      subscribeToPush
     }}>
       {children}
     </DashboardContext.Provider>

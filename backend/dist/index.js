@@ -18,7 +18,11 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const web_push_1 = __importDefault(require("web-push"));
 dotenv_1.default.config();
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "BJDVzITaN-AqA97sDgrEinPoHhyN9T9eRXAIi5-dJcePYIt5vQHEQj0HfvK5vTgvSlxO8ox2-UQCyIYnjjtAO14";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "_U6F0hskOhDDHUAAqCOblQigRYCmqqxzkk8AO27sqxU";
+web_push_1.default.setVapidDetails("mailto:joaoreidobugs@gmail.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 const app = (0, express_1.default)();
 const prisma = new client_1.PrismaClient();
 app.use((0, cors_1.default)({
@@ -170,6 +174,58 @@ app.post("/api/auth/login", (req, res) => __awaiter(void 0, void 0, void 0, func
         res.status(500).json({ error: "Internal server error" });
     }
 }));
+// --- NOTIFICATION ROUTES ---
+app.get("/api/notifications/public-key", (req, res) => {
+    res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+app.post("/api/notifications/subscribe", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const subscription = req.body;
+    const userId = req.user.userId;
+    try {
+        yield prisma.pushSubscription.upsert({
+            where: { endpoint: subscription.endpoint },
+            update: {
+                p256dh: subscription.keys.p256dh,
+                auth: subscription.keys.auth,
+                userId: userId,
+            },
+            create: {
+                endpoint: subscription.endpoint,
+                p256dh: subscription.keys.p256dh,
+                auth: subscription.keys.auth,
+                userId: userId,
+            },
+        });
+        res.status(201).json({ success: true });
+    }
+    catch (error) {
+        console.error("Subscription error:", error);
+        res.status(500).json({ error: "Failed to subscribe" });
+    }
+}));
+const sendPushNotification = (userId, title, body) => __awaiter(void 0, void 0, void 0, function* () {
+    const subscriptions = yield prisma.pushSubscription.findMany({
+        where: { userId }
+    });
+    const payload = JSON.stringify({ title, body });
+    const notifications = subscriptions.map(sub => {
+        const pushConfig = {
+            endpoint: sub.endpoint,
+            keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth
+            }
+        };
+        return web_push_1.default.sendNotification(pushConfig, payload).catch((err) => {
+            if (err.statusCode === 410) {
+                // Subscription expired or removed
+                return prisma.pushSubscription.delete({ where: { id: sub.id } });
+            }
+            console.error("Error sending push notification:", err);
+        });
+    });
+    yield Promise.all(notifications);
+});
 // --- ADMIN ROUTES ---
 app.get("/api/admin/metrics", authenticate, isAdmin, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -497,6 +553,9 @@ app.post("/api/daily-records", authenticate, (req, res) => __awaiter(void 0, voi
             }
         });
         res.json(record);
+        // Send push notification
+        const formattedProfit = profit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        sendPushNotification(req.user.userId, "Item Registrado", `Novo registro em ${platform}: Lucro de ${formattedProfit}`).catch(e => console.error("Notification error:", e));
     }
     catch (error) {
         res.status(500).json({ error: "Internal error" });
@@ -798,6 +857,21 @@ app.post("/api/teams/remittance", authenticate, (req, res) => __awaiter(void 0, 
             }
         });
         res.json(remittance);
+        // Send push notification to operator and owner
+        try {
+            const team = yield prisma.team.findUnique({ where: { id: Number(teamId) } });
+            if (team) {
+                // Notify operator
+                sendPushNotification(req.user.userId, "Remessa Enviada", `Sua remessa de ${platform} no valor de R$ ${calculatedValue.toFixed(2)} foi registrada.`).catch(e => console.error(e));
+                // Notify owner
+                if (team.ownerId !== req.user.userId) {
+                    sendPushNotification(team.ownerId, "Nova Remessa na Equipe", `Um operador enviou uma remessa de ${platform}: R$ ${calculatedValue.toFixed(2)}`).catch(e => console.error(e));
+                }
+            }
+        }
+        catch (pnError) {
+            console.error("Push notification error in remittance:", pnError);
+        }
     }
     catch (error) {
         console.error("Create remittance error:", error);
