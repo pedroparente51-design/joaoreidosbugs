@@ -86,7 +86,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         <div className="flex items-center gap-3 md:pr-8 md:border-r md:border-white/5">
           <div className="relative w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
             <Image
-              src="/img/logo1.png"
+              src="/img/logo.png"
               alt="Logo"
               fill
               className="object-contain"
