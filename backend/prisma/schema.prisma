@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int              @id @default(autoincrement())
+  name            String
+  email           String           @unique
+  passwordHash    String
+  role            Role             @default(USER)
+  createdAt       DateTime         @default(now())
+  status          UserStatus       @default(ACTIVE)
+  activities      Activity[]
+  sheets          DailySheet[]
+  expenses        Expense[]
+  goals           Goal[]
+  statistics      Statistic[]
+  ownedTeams      Team[]           @relation("TeamOwner")
+  teamMemberships TeamMember[]
+  remittances     TeamRemittance[] @relation("Operator")
+}
+
+model Team {
+  id          Int              @id @default(autoincrement())
+  name        String
+  code        String           @unique
+  instagram   String?
+  color       String?          @default("#7000FF")
+  ownerId     Int
+  createdAt   DateTime         @default(now())
+  owner       User             @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  goals       TeamGoal[]
+  members     TeamMember[]
+  operations  TeamOperation[]
+  remittances TeamRemittance[]
+}
+
+model TeamMember {
+  id     Int    @id @default(autoincrement())
+  teamId Int
+  userId Int
+  role   String @default("OPERATOR")
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+model TeamOperation {
+  id         Int      @id @default(autoincrement())
+  teamId     Int
+  platform   String
+  network    String
+  title      String
+  depositors Int      @default(0)
+  createdAt  DateTime @default(now())
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model TeamGoal {
+  id        Int      @id @default(autoincrement())
+  teamId    Int
+  platform  String
+  target    Int
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model TeamRemittance {
+  id          Int      @id @default(autoincrement())
+  teamId      Int
+  operatorId  Int
+  platform    String
+  value       Float
+  observation String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  operator    User     @relation("Operator", fields: [operatorId], references: [id], onDelete: Cascade)
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model DailySheet {
+  id        Int           @id @default(autoincrement())
+  name      String
+  proxyCost Float         @default(0.0)
+  smsCost   Float         @default(0.0)
+  userId    Int
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  records   DailyRecord[]
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DailyRecord {
+  id         Int        @id @default(autoincrement())
+  date       DateTime   @default(now())
+  platform   String
+  investment Float
+  withdraw   Float
+  cycles     String
+  sheetId    Int
+  createdAt  DateTime   @default(now())
+  profit     Float      @default(0.0)
+  status     String     @default("ACTIVE")
+  teamId     Int?
+  sheet      DailySheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+}
+
+model Statistic {
+  id      Int      @id @default(autoincrement())
+  userId  Int
+  clicks  Int      @default(0)
+  revenue Float    @default(0.0)
+  leads   Int      @default(0)
+  date    DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  actionType  String
+  description String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  level     String   @default("info")
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model Goal {
+  id        Int      @id @default(autoincrement())
+  title     String
+  target    Float
+  current   Float    @default(0.0)
+  deadline  String
+  userId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id        Int      @id @default(autoincrement())
+  name      String
+  amount    Float
+  category  String
+  date      String
+  userId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}

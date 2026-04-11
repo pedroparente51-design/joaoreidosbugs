@@ -1,0 +1,952 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+dotenv.config();
+
+const app = express();
+const prisma = new PrismaClient();
+
+app.use(cors());
+app.use(express.json());
+
+const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
+
+// Admin Seeding
+const seedAdmin = async () => {
+  const adminEmail = "joaoreidobugs@admin.com";
+  try {
+    const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+    if (!existingAdmin) {
+      const passwordHash = await bcrypt.hash("Admin@123", 10);
+      await prisma.user.create({
+        data: {
+          name: "João Rei (ADMIN)",
+          email: adminEmail,
+          passwordHash,
+          role: "ADMIN",
+          status: "ACTIVE"
+        }
+      });
+      console.log("Admin seeded successfully");
+    }
+  } catch (error) {
+    console.error("Error seeding admin:", error);
+  }
+};
+seedAdmin();
+
+// Auth routes
+app.post("/api/auth/register", async (req, res) => {
+  const { name, email, password } = req.body;
+  
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: "User already exists" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        status: "ACTIVE"
+      },
+    });
+
+    // Log Activity
+    await prisma.activity.create({
+      data: { userId: user.id, actionType: "REGISTER", description: "Novo usuário registrado" }
+    });
+
+    res.status(201).json({ message: "User registered successfully", userId: user.id });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    if (user.status === 'BANNED') {
+      return res.status(403).json({ error: "Sua conta foi suspensa. Entre em contato com o suporte." });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // Log Activity
+    await prisma.activity.create({
+      data: { userId: user.id, actionType: "LOGIN", description: "Login realizado com sucesso" }
+    });
+
+    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "1d" });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Middleware for JWT verification
+const authenticate = (req: any, res: any, next: any) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.log("Auth failed: No token");
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = payload;
+    next();
+  } catch (error) {
+    console.log("Auth failed: Invalid token", error);
+    return res.status(401).json({ error: "Invalid token" });
+  }
+};
+
+const isAdmin = (req: any, res: any, next: any) => {
+  if (req.user && req.user.role === 'ADMIN') {
+    next();
+  } else {
+    res.status(403).json({ error: "Acesso negado. Apenas administradores podem acessar esta rota." });
+  }
+};
+
+// --- ADMIN ROUTES ---
+
+app.get("/api/admin/metrics", authenticate, isAdmin, async (req, res) => {
+  try {
+    const [usersCount, teamsCount, operatorsCount, goalsCount, remittances, dailyRecords] = await Promise.all([
+      prisma.user.count(),
+      prisma.team.count(),
+      prisma.teamMember.count({ where: { role: 'OPERATOR' } }),
+      prisma.teamGoal.count(),
+      prisma.teamRemittance.findMany(),
+      prisma.dailyRecord.findMany()
+    ]);
+
+    const activeGoals = await prisma.teamGoal.count({ where: { status: 'ACTIVE' } });
+    const closedGoals = await prisma.teamGoal.count({ where: { status: 'CLOSED' } });
+    
+    const teamRevenue = remittances.reduce((acc, r) => acc + r.value, 0);
+    const dailyProfit = dailyRecords.reduce((acc, r) => acc + r.profit, 0);
+    const totalPlatformRevenue = teamRevenue + dailyProfit;
+
+    // Today's revenue (rough estimate from created at)
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const todayRemittances = await prisma.teamRemittance.findMany({ where: { createdAt: { gte: today } } });
+    const todayDaily = await prisma.dailyRecord.findMany({ where: { createdAt: { gte: today } } });
+    const todayRevenue = todayRemittances.reduce((acc, r) => acc + r.value, 0) + todayDaily.reduce((acc, r) => acc + r.profit, 0);
+
+    res.json({
+      totalUsers: usersCount,
+      totalTeams: teamsCount,
+      totalOperators: operatorsCount,
+      totalGoals: goalsCount,
+      activeGoals,
+      closedGoals,
+      totalRemittances: remittances.length,
+      totalRevenue: totalPlatformRevenue,
+      todayRevenue,
+      totalLoss: dailyRecords.filter(r => r.profit < 0).reduce((acc, r) => acc + Math.abs(r.profit), 0)
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+app.get("/api/admin/users", authenticate, isAdmin, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: { teamMemberships: { include: { team: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(users.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      status: u.status,
+      createdAt: u.createdAt,
+      team: u.teamMemberships[0]?.team.name || "Sem Equipe"
+    })));
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/admin/users/:id/role", authenticate, isAdmin, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const user = await prisma.user.update({
+      where: { id: Number(req.params.id) },
+      data: { role }
+    });
+    res.json(user);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/admin/users/:id/status", authenticate, isAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const user = await prisma.user.update({
+      where: { id: Number(req.params.id) },
+      data: { status }
+    });
+    res.json(user);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.delete("/api/admin/users/:id", authenticate, isAdmin, async (req, res) => {
+  try {
+    await prisma.user.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.get("/api/admin/teams", authenticate, isAdmin, async (req, res) => {
+  try {
+    const teams = await prisma.team.findMany({
+      include: { 
+        owner: { select: { name: true } },
+        members: true,
+        remittances: true
+      }
+    });
+
+    res.json(teams.map(t => ({
+      id: t.id,
+      name: t.name,
+      code: t.code,
+      owner: t.owner.name,
+      operatorsCount: t.members.length,
+      revenue: t.remittances.reduce((acc, r) => acc + r.value, 0)
+    })));
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.get("/api/admin/feed", authenticate, isAdmin, async (req, res) => {
+  try {
+    const [remittances, goals, operations, activities] = await Promise.all([
+      prisma.teamRemittance.findMany({ take: 10, orderBy: { createdAt: 'desc' }, include: { operator: { select: { name: true } } } }),
+      prisma.teamGoal.findMany({ take: 10, orderBy: { createdAt: 'desc' }, include: { team: true } }),
+      prisma.teamOperation.findMany({ take: 10, orderBy: { createdAt: 'desc' }, include: { team: true } }),
+      prisma.activity.findMany({ take: 10, orderBy: { createdAt: 'desc' }, include: { user: { select: { name: true } } } })
+    ]);
+
+    const feed = [
+      ...remittances.map(r => ({ type: 'REMITTANCE', title: `Nova Remessa: R$ ${r.value}`, user: r.operator.name, date: r.createdAt })),
+      ...goals.map(g => ({ type: 'GOAL', title: `Nova Meta: ${g.platform}`, user: g.team.name, date: g.createdAt })),
+      ...operations.map(o => ({ type: 'OPERATION', title: `Operação: ${o.title}`, user: o.team.name, date: o.createdAt })),
+      ...activities.map(a => ({ type: 'ACTIVITY', title: a.description, user: a.user.name, date: a.createdAt }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    res.json(feed.slice(0, 20));
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.get("/api/admin/logs", authenticate, isAdmin, async (req, res) => {
+  try {
+    const logs = await prisma.activity.findMany({
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
+    res.json(logs);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+// Data routes (protected)
+app.get("/api/dashboard", authenticate, async (req: any, res: any) => {
+  try {
+    const userId = req.user.role === 'ADMIN' ? undefined : req.user.userId;
+    
+    // Aggregate stats
+    const stats = await prisma.statistic.aggregate({
+      _sum: {
+        clicks: true,
+        revenue: true,
+        leads: true
+      },
+      where: userId ? { userId } : undefined
+    });
+
+    const recentActivities = await prisma.activity.findMany({
+      where: userId ? { userId } : undefined,
+      orderBy: { createdAt: "desc" },
+      take: 5
+    });
+
+    res.json({ stats: stats._sum, recentActivities });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/api/users", authenticate, async (req: any, res: any) => {
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, name: true, email: true, role: true, createdAt: true }
+    });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// --- GOALS ROUTE ---
+app.get("/api/goals", authenticate, async (req: any, res: any) => {
+  try {
+    const goals = await prisma.goal.findMany({ where: { userId: req.user.userId } });
+    res.json(goals);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/goals", authenticate, async (req: any, res: any) => {
+  try {
+    const { title, target, current, deadline } = req.body;
+    const goal = await prisma.goal.create({
+      data: { title, target, current, deadline, userId: req.user.userId }
+    });
+    res.json(goal);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+// --- EXPENSES ROUTE ---
+app.get("/api/expenses", authenticate, async (req: any, res: any) => {
+  try {
+    const expenses = await prisma.expense.findMany({ where: { userId: req.user.userId }, orderBy: { createdAt: 'desc' } });
+    res.json(expenses);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/expenses", authenticate, async (req: any, res: any) => {
+  try {
+    const { name, amount, category, date } = req.body;
+    const expense = await prisma.expense.create({
+      data: { name, amount, category, date, userId: req.user.userId }
+    });
+    res.json(expense);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.delete("/api/expenses/:id", authenticate, async (req: any, res: any) => {
+  try {
+    await prisma.expense.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+// --- DAILY SHEETS & RECORDS ---
+app.get("/api/daily-sheets", authenticate, async (req: any, res: any) => {
+  try {
+    const sheets = await prisma.dailySheet.findMany({
+      where: { userId: req.user.userId },
+      include: { records: { orderBy: { createdAt: 'desc' } } },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json(sheets);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/daily-sheets", authenticate, async (req: any, res: any) => {
+  try {
+    const { name } = req.body;
+    const sheet = await prisma.dailySheet.create({
+      data: { name, userId: req.user.userId },
+      include: { records: true }
+    });
+    res.json(sheet);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.put("/api/daily-sheets/:id", authenticate, async (req: any, res: any) => {
+  try {
+    const { name, proxyCost, smsCost } = req.body;
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (proxyCost !== undefined) updateData.proxyCost = proxyCost;
+    if (smsCost !== undefined) updateData.smsCost = smsCost;
+    
+    const sheet = await prisma.dailySheet.update({
+      where: { id: Number(req.params.id) },
+      data: updateData,
+      include: { records: true }
+    });
+    res.json(sheet);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.delete("/api/daily-sheets/:id", authenticate, async (req: any, res: any) => {
+  try {
+    await prisma.dailySheet.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.get("/api/daily-records", authenticate, async (req: any, res: any) => {
+  try {
+    const { sheetId } = req.query;
+    if (!sheetId) return res.status(400).json({ error: "sheetId required "});
+    const records = await prisma.dailyRecord.findMany({
+      where: { sheetId: Number(sheetId) },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(records);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
+  try {
+    const { sheetId, date, platform, investment, withdraw, cycles } = req.body;
+    const profit = withdraw - investment;
+    const record = await prisma.dailyRecord.create({
+      data: {
+        sheetId: Number(sheetId),
+        date: new Date(date),
+        platform, investment, withdraw, cycles, profit
+      }
+    });
+    res.json(record);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.put("/api/daily-records/:id", authenticate, async (req: any, res: any) => {
+  try {
+    const { date, platform, investment, withdraw, cycles } = req.body;
+    const profit = withdraw - investment;
+    const record = await prisma.dailyRecord.update({
+      where: { id: Number(req.params.id) },
+      data: { date: new Date(date), platform, investment, withdraw, cycles, profit }
+    });
+    res.json(record);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.delete("/api/daily-records/:id", authenticate, async (req: any, res: any) => {
+  try {
+    await prisma.dailyRecord.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.get("/api/dashboard-summary", authenticate, async (req: any, res: any) => {
+  try {
+    const sheets = await prisma.dailySheet.findMany({
+      where: { userId: req.user.userId },
+      include: { records: true }
+    });
+    const expenses = await prisma.expense.findMany({
+      where: { userId: req.user.userId }
+    });
+    
+    let totalInvest = 0;
+    let totalWithdraw = 0;
+    let totalProxySms = 0;
+    
+    sheets.forEach((sheet: any) => {
+      totalProxySms += (sheet.proxyCost || 0) + (sheet.smsCost || 0);
+      sheet.records.forEach((record: any) => {
+        totalInvest += record.investment;
+        totalWithdraw += record.withdraw;
+      });
+    });
+    const totalExp = expenses.reduce((acc: number, e: any) => acc + e.amount, 0);
+    
+    const investment = totalInvest + totalProxySms + totalExp;
+    const revenue = totalWithdraw;
+    const profit = revenue - investment;
+    const roi = investment > 0 ? (profit / investment) * 100 : 0;
+    const totalMovimentado = totalInvest + totalWithdraw;
+    
+    res.json({ investment, revenue, profit, roi, totalMovimentado });
+  } catch (error) {
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// --- TEAM ROUTES ---
+
+// Helper to generate unique team code
+const generateTeamCode = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
+
+app.post("/api/teams/create", authenticate, async (req: any, res: any) => {
+  try {
+    const { name, instagram, color } = req.body;
+    const code = generateTeamCode();
+    
+    // Ensure the owner is not already in another team (assuming 1 team per user for simplicity, or just atomic create)
+    const existingMembership = await prisma.teamMember.findFirst({
+      where: { userId: req.user.userId }
+    });
+    
+    if (existingMembership) {
+      return res.status(400).json({ error: "Você já faz parte de uma equipe." });
+    }
+
+    const team = await prisma.team.create({
+      data: {
+        name,
+        code,
+        instagram,
+        color,
+        ownerId: req.user.userId,
+        members: {
+          create: {
+            userId: req.user.userId,
+            role: "OWNER"
+          }
+        }
+      }
+    });
+    
+    res.json(team);
+  } catch (error) { 
+    console.error("Error creating team:", error);
+    res.status(500).json({ error: "Erro interno ao criar equipe" }); 
+  }
+});
+
+app.post("/api/teams/join", authenticate, async (req: any, res: any) => {
+  try {
+    const { code } = req.body;
+    const team = await prisma.team.findUnique({ where: { code } });
+    
+    if (!team) return res.status(404).json({ error: "Equipe não encontrada" });
+    
+    // Check if user is already a member
+    const existingMembership = await prisma.teamMember.findUnique({
+      where: {
+        teamId_userId: {
+          teamId: team.id,
+          userId: req.user.userId
+        }
+      }
+    });
+    
+    if (existingMembership) {
+      return res.status(400).json({ error: "Você já é membro desta equipe." });
+    }
+
+    const membership = await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId: req.user.userId,
+        role: "OPERATOR"
+      }
+    });
+    
+    res.json({ success: true, team });
+  } catch (error) { 
+    console.error("Error joining team:", error);
+    res.status(500).json({ error: "Erro interno ao entrar na equipe" }); 
+  }
+});
+
+app.get("/api/teams/current", authenticate, async (req: any, res: any) => {
+  try {
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: req.user.userId },
+      include: { team: true }
+    });
+    res.json(membership ? membership.team : null);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.get("/api/teams/dashboard", authenticate, async (req: any, res: any) => {
+  try {
+    const { teamId } = req.query;
+    if (!teamId) return res.status(400).json({ error: "teamId required" });
+    
+    const id = Number(teamId);
+    const [team, allRemittances, members, goals] = await Promise.all([
+      prisma.team.findUnique({ where: { id } }),
+      prisma.teamRemittance.findMany({ 
+        where: { teamId: id },
+        include: { operator: { select: { name: true } } }
+      }),
+      prisma.teamMember.findMany({ 
+        where: { teamId: id },
+        include: { user: { select: { name: true, email: true } } }
+      }),
+      prisma.teamGoal.findMany({ where: { teamId: id } })
+    ]);
+
+    // Calculate requested stats
+    const teamProfit = allRemittances.reduce((acc, r) => acc + r.value, 0);
+    const operatorsCount = members.length;
+    const activeGoals = goals.filter(g => g.status === 'ACTIVE').length;
+    const finishedGoals = goals.filter(g => g.status === 'CLOSED' || g.status === 'COMPLETED').length;
+
+    // Operator Ranking (Sum of profit/remittances)
+    const rankingMap: Record<number, { name: string, profit: number, count: number }> = {};
+    allRemittances.forEach(r => {
+      if (!rankingMap[r.operatorId]) {
+        rankingMap[r.operatorId] = { name: r.operator.name, profit: 0, count: 0 };
+      }
+      rankingMap[r.operatorId].profit += r.value;
+      rankingMap[r.operatorId].count += 1;
+    });
+
+    const operatorsRanking = Object.values(rankingMap)
+      .sort((a, b) => b.profit - a.profit);
+
+    res.json({
+      teamProfit,
+      totalRemittance: allRemittances.length,
+      operatorsCount,
+      goalsCount: goals.length,
+      activeGoals,
+      finishedGoals,
+      members: members.map(m => ({ 
+        id: m.userId, 
+        name: m.user.name, 
+        role: m.role 
+      })),
+      operatorsRanking
+    });
+  } catch (error) { 
+    console.error("Dashboard error:", error);
+    res.status(500).json({ error: "Internal error" }); 
+  }
+});
+
+app.get("/api/teams/operations", authenticate, async (req: any, res: any) => {
+  try {
+    const { teamId } = req.query;
+    if (!teamId) return res.status(400).json({ error: "teamId required" });
+    const operations = await prisma.teamOperation.findMany({
+      where: { teamId: Number(teamId) },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(operations);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/teams/operations", authenticate, async (req: any, res: any) => {
+  try {
+    const { teamId, platform, network, title, depositors } = req.body;
+    const operation = await prisma.teamOperation.create({
+      data: { teamId: Number(teamId), platform, network, title, depositors: Number(depositors) }
+    });
+    res.json(operation);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.get("/api/teams/goals", authenticate, async (req: any, res: any) => {
+  try {
+    const { teamId } = req.query;
+    const goals = await prisma.teamGoal.findMany({ 
+      where: { teamId: Number(teamId) },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(goals);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/teams/goals", authenticate, async (req: any, res: any) => {
+  try {
+    const { teamId, platform, target } = req.body;
+    const goal = await prisma.teamGoal.create({
+      data: { teamId: Number(teamId), platform, target: Number(target) }
+    });
+    res.json(goal);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
+  try {
+    const { teamId, platform, value, observation } = req.body;
+    const remittance = await prisma.teamRemittance.create({
+      data: { 
+        teamId: Number(teamId),
+        operatorId: req.user.userId,
+        platform,
+        value: Number(value),
+        observation
+      }
+    });
+    res.json(remittance);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.get("/api/teams/remittance/feed", authenticate, async (req: any, res: any) => {
+  try {
+    const { teamId } = req.query;
+    const feed = await prisma.teamRemittance.findMany({
+      where: { teamId: Number(teamId) },
+      include: { operator: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+    res.json(feed);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+// --- FINALIZE REMITTANCE ---
+app.post("/api/daily-records/:id/finalize", authenticate, async (req: any, res: any) => {
+  try {
+    const recordId = Number(req.params.id);
+    const userId = req.user.userId;
+
+    const record = await prisma.dailyRecord.findUnique({
+      where: { id: recordId },
+      include: { sheet: true }
+    });
+
+    if (!record || record.sheet.userId !== userId) {
+      return res.status(404).json({ error: "Registro não encontrado" });
+    }
+
+    if (record.status === 'FINISHED') {
+      return res.status(400).json({ error: "Esta remessa já foi finalizada" });
+    }
+
+    // Find user's team
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId }
+    });
+
+    if (!membership) {
+      return res.status(400).json({ error: "Você precisa estar em uma equipe para finalizar cooperação." });
+    }
+
+    const profit = record.profit || (record.withdraw - record.investment);
+
+    const [updatedRecord, remittance] = await prisma.$transaction([
+      prisma.dailyRecord.update({
+        where: { id: recordId },
+        data: { status: 'FINISHED', teamId: membership.teamId }
+      }),
+      prisma.teamRemittance.create({
+        data: {
+          teamId: membership.teamId,
+          operatorId: userId,
+          platform: record.platform,
+          value: profit,
+          observation: `Finalização de cooperação - ${record.cycles}`
+        }
+      }),
+      // Log notification activity for feed/logs
+      prisma.activity.create({
+        data: {
+          userId,
+          actionType: "FINALIZE_REMITTANCE",
+          description: `Finalizou remessa: ${record.platform} - R$ ${profit.toFixed(2)}`
+        }
+      })
+    ]);
+
+    res.json({ success: true, record: updatedRecord, remittance });
+  } catch (error) {
+    console.error("Finalize error:", error);
+    res.status(500).json({ error: "Erro interno ao finalizar remessa" });
+  }
+});
+
+// --- RECENT ACTIVITY (feed aggregado) ---
+app.get("/api/recent-activity", authenticate, async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+
+    const [records, expenses, sheets] = await Promise.all([
+      prisma.dailyRecord.findMany({
+        where: { sheet: { userId } },
+        orderBy: { createdAt: 'desc' },
+        take: 6,
+        include: { sheet: { select: { name: true } } }
+      }),
+      prisma.expense.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 6
+      }),
+      prisma.dailySheet.findMany({
+        where: {
+          userId,
+          OR: [{ proxyCost: { gt: 0 } }, { smsCost: { gt: 0 } }]
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 4
+      })
+    ]);
+
+    type ActivityItem = {
+      type: string;
+      label: string;
+      value: number;
+      date: Date;
+    };
+
+    const activities: ActivityItem[] = [];
+
+    records.forEach(r => {
+      const profit = r.profit ?? (r.withdraw - r.investment);
+      activities.push({
+        type: profit >= 0 ? 'WITHDRAW' : 'LOSS',
+        label: `${r.platform} — Novo Registro`,
+        value: profit,
+        date: r.createdAt
+      });
+    });
+
+    expenses.forEach(e => {
+      activities.push({
+        type: 'EXPENSE',
+        label: e.name,
+        value: -e.amount,
+        date: e.createdAt
+      });
+    });
+
+    sheets.forEach(s => {
+      const cost = (s.proxyCost || 0) + (s.smsCost || 0);
+      if (cost > 0) {
+        activities.push({
+          type: 'COST',
+          label: `Proxy/SMS — ${s.name}`,
+          value: -cost,
+          date: s.updatedAt
+        });
+      }
+    });
+
+    activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    res.json(activities.slice(0, 6).map(a => ({
+      type: a.type,
+      label: a.label,
+      value: a.value,
+      date: a.date
+    })));
+  } catch (error) {
+    console.error("recent-activity error:", error);
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// --- SERVER OPERATIONS (registros do livro diário) ---
+app.get("/api/server-operations", authenticate, async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+
+    const records = await prisma.dailyRecord.findMany({
+      where: { sheet: { userId } },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: { sheet: { select: { name: true } } }
+    });
+
+    res.json(records.map(r => ({
+      id: r.id,
+      platform: r.platform,
+      type: r.withdraw >= r.investment ? 'WITHDRAW' : 'DEPOSIT',
+      investment: r.investment,
+      withdraw: r.withdraw,
+      profit: r.profit ?? (r.withdraw - r.investment),
+      sheet: r.sheet.name,
+      cycles: r.cycles,
+      date: r.createdAt
+    })));
+  } catch (error) {
+    console.error("server-operations error:", error);
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// --- RESET DATA ---
+
+// Reset Team Data (Owner/Admin only)
+app.post("/api/teams/:id/reset", authenticate, async (req: any, res: any) => {
+  try {
+    const teamId = Number(req.params.id);
+    const userId = req.user.userId;
+
+    // Check membership and role
+    const membership = await prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId } }
+    });
+
+    if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
+      return res.status(403).json({ error: "Acesso negado. Apenas proprietários ou administradores podem redefinir os dados." });
+    }
+
+    await prisma.$transaction([
+      prisma.teamRemittance.deleteMany({ where: { teamId } }),
+      prisma.teamGoal.deleteMany({ where: { teamId } }),
+      prisma.teamOperation.deleteMany({ where: { teamId } }),
+      // Log the reset
+      prisma.activity.create({
+        data: {
+          userId,
+          actionType: "RESET_TEAM_DATA",
+          description: `Redefiniu todos os dados da equipe ID ${teamId}`
+        }
+      })
+    ]);
+
+    res.json({ success: true, message: "Dados da equipe redefinidos com sucesso." });
+  } catch (error) {
+    console.error("Team reset error:", error);
+    res.status(500).json({ error: "Erro interno ao redefinir dados da equipe" });
+  }
+});
+
+// Reset User Data (Personal only)
+app.post("/api/user/reset-data", authenticate, async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+
+    await prisma.$transaction([
+      prisma.dailySheet.deleteMany({ where: { userId } }),
+      prisma.goal.deleteMany({ where: { userId } }),
+      prisma.expense.deleteMany({ where: { userId } }),
+      prisma.statistic.deleteMany({ where: { userId } }),
+      prisma.activity.deleteMany({ where: { userId } }),
+      // Re-log the reset activity as the only one left
+      prisma.activity.create({
+        data: {
+          userId,
+          actionType: "RESET_USER_DATA",
+          description: "Redefiniu todos os dados pessoais"
+        }
+      })
+    ]);
+
+    res.json({ success: true, message: "Seus dados foram redefinidos com sucesso." });
+  } catch (error) {
+    console.error("User reset error:", error);
+    res.status(500).json({ error: "Erro interno ao redefinir seus dados" });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend rodando em http://localhost:${PORT}`);
+});
