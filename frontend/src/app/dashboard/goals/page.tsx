@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Crown, Plus, Target, TrendingUp, CheckCircle2, ChevronRight, X, Calendar } from "lucide-react";
+import { Crown, Plus, Target, TrendingUp, CheckCircle2, X, Calendar, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "@/components/layout/DashboardContext";
 import api from "@/lib/api";
@@ -18,23 +18,28 @@ export default function GoalsPage() {
   const { formatValue } = useDashboard();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [realProfit, setRealProfit] = useState<number>(0);
   
   // Form State
   const [title, setTitle] = useState("");
   const [target, setTarget] = useState("");
-  const [current, setCurrent] = useState("");
   const [deadline, setDeadline] = useState("");
 
+  // Buscar metas e lucro real
   useEffect(() => {
-    const fetchGoals = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await api.get('/goals');
-        setGoals(data);
+        const [goalsRes, summaryRes] = await Promise.all([
+          api.get('/goals'),
+          api.get('/dashboard-summary'),
+        ]);
+        setGoals(goalsRes.data);
+        setRealProfit(summaryRes.data.profit ?? 0);
       } catch (error) {
-        console.error("Failed to load goals", error);
+        console.error("Failed to load data", error);
       }
     };
-    fetchGoals();
+    fetchData();
   }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -45,17 +50,25 @@ export default function GoalsPage() {
       const { data } = await api.post('/goals', {
         title,
         target: parseFloat(target),
-        current: parseFloat(current) || 0,
+        current: 0,
         deadline: deadline || "Sem prazo",
       });
       setGoals(prev => [...prev, data]);
       setTitle("");
       setTarget("");
-      setCurrent("");
       setDeadline("");
       setIsModalOpen(false);
     } catch (error) {
       console.error("Failed to add goal", error);
+    }
+  };
+
+  const deleteGoal = async (id: number) => {
+    try {
+      await api.delete(`/goals/${id}`);
+      setGoals(prev => prev.filter(g => g.id !== id));
+    } catch (error) {
+      console.error("Failed to delete goal", error);
     }
   };
 
@@ -68,7 +81,7 @@ export default function GoalsPage() {
           </div>
           <div className="flex flex-col">
             <h1 className="text-3xl font-black text-white tracking-tight uppercase">Metas</h1>
-            <p className="text-slate-500 font-medium">Defina e acompanhe seus objetivos de faturamento.</p>
+            <p className="text-slate-500 font-medium">Progresso automático baseado no seu lucro geral.</p>
           </div>
         </div>
         
@@ -77,6 +90,31 @@ export default function GoalsPage() {
           className="bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-neon"
         >
           <Plus size={18} /> Nova Meta
+        </button>
+      </div>
+
+      {/* Lucro geral info */}
+      <div className="glass-card p-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-accent-emerald/10 rounded-xl text-accent-emerald border border-accent-emerald/20">
+            <TrendingUp size={18} />
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Lucro Geral Atual</span>
+            <p className={cn(
+              "text-2xl font-black tracking-tighter",
+              realProfit >= 0 ? "text-accent-emerald" : "text-red-500"
+            )}>
+              {formatValue(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(realProfit))}
+            </p>
+          </div>
+        </div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/5 py-2 px-4 rounded-xl transition-all group/btn"
+        >
+          <RefreshCw size={14} className="text-slate-400 group-hover/btn:rotate-180 transition-transform duration-500" />
+          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Atualizar</span>
         </button>
       </div>
 
@@ -89,7 +127,9 @@ export default function GoalsPage() {
           </div>
         ) : (
           goals.map(goal => {
-            const progress = Math.min((goal.current / goal.target) * 100, 100);
+            // Progresso baseado no lucro geral real
+            const currentValue = Math.max(realProfit, 0);
+            const progress = goal.target > 0 ? Math.min((currentValue / goal.target) * 100, 100) : 0;
             return (
               <div key={goal.id} className="glass-card p-8 flex flex-col gap-8 group hover:border-primary/30 transition-all duration-500 relative overflow-hidden">
                 <div className="flex justify-between items-start">
@@ -107,8 +147,13 @@ export default function GoalsPage() {
                 <div className="space-y-4">
                    <div className="flex justify-between items-end">
                       <div className="flex flex-col">
-                         <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Atual</span>
-                         <span className="text-xl font-black text-white">{formatValue(`R$ ${goal.current.toLocaleString('pt-BR')}`)}</span>
+                         <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Lucro Atual</span>
+                         <span className={cn(
+                           "text-xl font-black",
+                           realProfit >= 0 ? "text-accent-emerald" : "text-red-500"
+                         )}>
+                           {formatValue(`R$ ${currentValue.toLocaleString('pt-BR')}`)}
+                         </span>
                       </div>
                       <div className="flex flex-col items-end">
                          <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Meta</span>
@@ -119,13 +164,21 @@ export default function GoalsPage() {
                    <div className="space-y-2">
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
                         <div 
-                          className="h-full bg-primary rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(251,191,36,0.4)]"
+                          className={cn(
+                            "h-full rounded-full transition-all duration-1000",
+                            progress >= 100
+                              ? "bg-accent-emerald shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                              : "bg-primary shadow-[0_0_10px_rgba(251,191,36,0.4)]"
+                          )}
                           style={{ width: `${progress}%` }}
                         />
                       </div>
                       <div className="flex justify-between">
                          <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Progresso</span>
-                         <span className="text-[10px] text-primary font-black uppercase tracking-widest">{progress.toFixed(1)}%</span>
+                         <span className={cn(
+                           "text-[10px] font-black uppercase tracking-widest",
+                           progress >= 100 ? "text-accent-emerald" : "text-primary"
+                         )}>{progress.toFixed(1)}%</span>
                       </div>
                    </div>
                 </div>
@@ -136,8 +189,11 @@ export default function GoalsPage() {
                    </div>
                 )}
 
-                <button className="mt-4 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest transition-all">
-                  Atualizar Progresso
+                <button 
+                  onClick={() => deleteGoal(goal.id)}
+                  className="mt-2 py-3 bg-white/5 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 border border-white/5 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest transition-all"
+                >
+                  Remover Meta
                 </button>
               </div>
             );
@@ -168,28 +224,16 @@ export default function GoalsPage() {
                      placeholder="Ex: Faturamento Mensal"
                    />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Atual (R$)</label>
-                     <input 
-                       type="number"
-                       value={current}
-                       onChange={e => setCurrent(e.target.value)}
-                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all"
-                       placeholder="0"
-                     />
-                  </div>
-                  <div className="space-y-2">
-                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Meta (R$)</label>
-                     <input 
-                       required
-                       type="number"
-                       value={target}
-                       onChange={e => setTarget(e.target.value)}
-                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all"
-                       placeholder="0"
-                     />
-                  </div>
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Meta (R$)</label>
+                   <input 
+                     required
+                     type="number"
+                     value={target}
+                     onChange={e => setTarget(e.target.value)}
+                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all"
+                     placeholder="Ex: 10000"
+                   />
                 </div>
                 <div className="space-y-2">
                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Prazo Final</label>
@@ -200,6 +244,7 @@ export default function GoalsPage() {
                      placeholder="Ex: 30 de Abril"
                    />
                 </div>
+                <p className="text-[10px] text-slate-500 italic">* O progresso será atualizado automaticamente pelo lucro geral da operação.</p>
                 <button className="w-full py-4 bg-primary text-white font-black rounded-xl uppercase tracking-widest shadow-neon mt-4">
                    Criar Meta
                 </button>
@@ -210,3 +255,4 @@ export default function GoalsPage() {
     </div>
   );
 }
+
