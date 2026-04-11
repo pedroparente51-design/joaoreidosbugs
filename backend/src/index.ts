@@ -265,7 +265,7 @@ app.get("/api/admin/feed", authenticate, isAdmin, async (req, res) => {
     const feed = [
       ...remittances.map(r => ({ type: 'REMITTANCE', title: `Nova Remessa: R$ ${r.value}`, user: r.operator.name, date: r.createdAt })),
       ...goals.map(g => ({ type: 'GOAL', title: `Nova Meta: ${g.platform}`, user: g.team.name, date: g.createdAt })),
-      ...operations.map(o => ({ type: 'OPERATION', title: `Operação: ${o.title}`, user: o.team.name, date: o.createdAt })),
+      ...operations.map(o => ({ type: 'OPERATION', title: `Operação: ${o.platform} (${o.network})`, user: o.team.name, date: o.createdAt })),
       ...activities.map(a => ({ type: 'ACTIVITY', title: a.description, user: a.user.name, date: a.createdAt }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -667,12 +667,22 @@ app.get("/api/teams/operations", authenticate, async (req: any, res: any) => {
 
 app.post("/api/teams/operations", authenticate, async (req: any, res: any) => {
   try {
-    const { teamId, platform, network, title, depositors } = req.body;
+    const { teamId, platform, network, bets, average, depositors } = req.body;
     const operation = await prisma.teamOperation.create({
-      data: { teamId: Number(teamId), platform, network, title, depositors: Number(depositors) }
+      data: { 
+        teamId: Number(teamId), 
+        platform, 
+        network, 
+        bets: Number(bets) || 0, 
+        average: Number(average) || 0, 
+        depositors: Number(depositors) || 0 
+      }
     });
     res.json(operation);
-  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+  } catch (error) { 
+    console.error("Create operation error:", error);
+    res.status(500).json({ error: "Internal error" }); 
+  }
 });
 
 app.get("/api/teams/goals", authenticate, async (req: any, res: any) => {
@@ -698,18 +708,28 @@ app.post("/api/teams/goals", authenticate, async (req: any, res: any) => {
 
 app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
   try {
-    const { teamId, platform, value, observation } = req.body;
+    const { teamId, platform, deposit, withdraw, bau, observation } = req.body;
+    
+    // Calcula o lucro real (Remessa) como Saque - Depósito
+    const calculatedValue = (Number(withdraw) || 0) - (Number(deposit) || 0);
+
     const remittance = await prisma.teamRemittance.create({
       data: { 
         teamId: Number(teamId),
         operatorId: req.user.userId,
         platform,
-        value: Number(value),
+        deposit: Number(deposit) || 0,
+        withdraw: Number(withdraw) || 0,
+        bau: Number(bau) || 0,
+        value: calculatedValue,
         observation
       }
     });
     res.json(remittance);
-  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+  } catch (error) { 
+    console.error("Create remittance error:", error);
+    res.status(500).json({ error: "Internal error" }); 
+  }
 });
 
 app.get("/api/teams/remittance/feed", authenticate, async (req: any, res: any) => {

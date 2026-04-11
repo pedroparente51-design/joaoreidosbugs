@@ -43,6 +43,9 @@ interface FeedItem {
   id: number;
   operator: { name: string };
   platform: string;
+  deposit: number;
+  withdraw: number;
+  bau: number;
   value: number;
   observation?: string;
   createdAt: string;
@@ -52,7 +55,8 @@ interface TeamOperation {
   id: number;
   platform: string;
   network: string;
-  title: string;
+  bets: number;
+  average: number;
   depositors: number;
   createdAt: string;
 }
@@ -98,9 +102,9 @@ export default function TeamPage() {
   const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false);
 
   // Forms State
-  const [opForm, setOpForm] = useState({ platform: "", network: "WE", title: "", depositors: 0 });
+  const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0 });
   const [goalForm, setGoalForm] = useState({ platform: "", target: 0 });
-  const [remitForm, setRemitForm] = useState({ platform: "", value: 0, observation: "" });
+  const [remitForm, setRemitForm] = useState({ platform: "", deposit: 0, withdraw: 0, bau: 0, observation: "" });
 
   const userRole = useMemo(() => {
     if (!team || !members.length) return "OPERATOR";
@@ -186,7 +190,7 @@ export default function TeamPage() {
     try {
       await api.post("/teams/operations", { ...opForm, teamId: team.id });
       alert("Operação registrada!");
-      setOpForm({ platform: "", network: "WE", title: "", depositors: 0 });
+      setOpForm({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0 });
       setIsOpModalOpen(false);
       fetchDashboardData(team.id); // Refresh operations list
     } catch (e) { alert("Erro ao registrar operação"); }
@@ -210,7 +214,7 @@ export default function TeamPage() {
     try {
       await api.post("/teams/remittance", { ...remitForm, teamId: team.id });
       fetchDashboardData(team.id);
-      setRemitForm({ platform: "", value: 0, observation: "" });
+      setRemitForm({ platform: "", deposit: 0, withdraw: 0, bau: 0, observation: "" });
       setIsRemitModalOpen(false);
       alert("Remessa registrada com sucesso!");
     } catch (e) { alert("Erro ao registrar remessa"); }
@@ -475,8 +479,10 @@ export default function TeamPage() {
                         <div className="flex items-center gap-4">
                           <div className="p-3 bg-white/5 rounded-xl text-slate-400 group-hover:text-primary transition-colors"><Zap size={18} /></div>
                           <div>
-                            <p className="text-sm font-black text-white uppercase tracking-tight">{op.title}</p>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{op.platform} • {op.network} • {op.depositors} depositantes</p>
+                            <p className="text-sm font-black text-white uppercase tracking-tight">PLATAFORMA: {op.platform}</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                              REDE: {op.network} • APOSTAS: {op.bets} • MÉDIA: {formatValue(`R$ ${op.average.toFixed(2)}`)} • {op.depositors} DEPOSITANTES
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
@@ -533,8 +539,12 @@ export default function TeamPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Título</label>
-                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Alavancagem Noturna" value={opForm.title} onChange={e => setOpForm({ ...opForm, title: e.target.value })} />
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Apostas (Qtd)</label>
+                <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0" value={opForm.bets} onChange={e => setOpForm({ ...opForm, bets: parseInt(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Média (R$)</label>
+                <input type="number" step="0.01" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={opForm.average} onChange={e => setOpForm({ ...opForm, average: parseFloat(e.target.value) || 0 })} />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Depositantes</label>
@@ -654,12 +664,22 @@ export default function TeamPage() {
             <div className="glass-card overflow-hidden">
               <table className="w-full text-left">
                 <thead className="bg-white/5 border-b border-white/5">
-                  <tr><th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Plataforma</th><th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Valor</th><th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data</th></tr>
+                  <tr>
+                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Plataforma</th>
+                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Depósito/Saque</th>
+                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Baú</th>
+                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Lucro Total</th>
+                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data</th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {feed.filter(f => f.operator.name === (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}').name : "")).map(remit => (
                     <tr key={remit.id} className="hover:bg-white/[0.01] transition-colors group">
                       <td className="px-6 py-4 text-xs font-bold text-white">{remit.platform}</td>
+                      <td className="px-6 py-4 text-[10px] font-bold text-slate-400">
+                        IN: {formatValue(`R$ ${remit.deposit.toFixed(2)}`)} / OUT: {formatValue(`R$ ${remit.withdraw.toFixed(2)}`)}
+                      </td>
+                      <td className="px-6 py-4 text-xs font-bold text-amber-500">{formatValue(`R$ ${remit.bau.toFixed(2)}`)}</td>
                       <td className="px-6 py-4 text-xs font-bold text-accent-blue">{formatValue(`R$ ${remit.value.toFixed(2)}`)}</td>
                       <td className="px-6 py-4 text-[10px] text-slate-500">{new Date(remit.createdAt).toLocaleDateString()}</td>
                     </tr>
@@ -692,8 +712,24 @@ export default function TeamPage() {
                   ))}
                 </select>
               </div>
-              <div className="space-y-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor (R$)</label><input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" value={remitForm.value} onChange={e => setRemitForm({ ...remitForm, value: parseFloat(e.target.value) || 0 })} /></div>
-              <div className="space-y-2"><label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Observação</label><textarea className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50 h-24 resize-none" value={remitForm.observation} onChange={e => setRemitForm({ ...remitForm, observation: e.target.value })} /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Depósito (R$)</label>
+                  <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={remitForm.deposit} onChange={e => setRemitForm({ ...remitForm, deposit: parseFloat(e.target.value) || 0 })} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Saque (R$)</label>
+                  <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={remitForm.withdraw} onChange={e => setRemitForm({ ...remitForm, withdraw: parseFloat(e.target.value) || 0 })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Baú (R$)</label>
+                <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={remitForm.bau} onChange={e => setRemitForm({ ...remitForm, bau: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Observação</label>
+                <textarea className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50 h-24 resize-none" placeholder="Opcional..." value={remitForm.observation} onChange={e => setRemitForm({ ...remitForm, observation: e.target.value })} />
+              </div>
               <button type="submit" className="w-full bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">ENVIAR REMESSA</button>
             </form>
           </Modal>

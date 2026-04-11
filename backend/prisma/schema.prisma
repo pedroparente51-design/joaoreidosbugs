@@ -57,7 +57,8 @@ model TeamOperation {
   teamId     Int
   platform   String
   network    String
-  title      String
+  bets       Int      @default(0)
+  average    Float    @default(0.0)
   depositors Int      @default(0)
   createdAt  DateTime @default(now())
   team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -78,6 +79,9 @@ model TeamRemittance {
   teamId      Int
   operatorId  Int
   platform    String
+  deposit     Float    @default(0.0)
+  withdraw    Float    @default(0.0)
+  bau         Float    @default(0.0)
   value       Float
   observation String?
   date        DateTime @default(now())
