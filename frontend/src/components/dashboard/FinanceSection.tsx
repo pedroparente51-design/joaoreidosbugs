@@ -125,7 +125,7 @@ export function FinanceEvolution() {
             <Tooltip
               contentStyle={{ backgroundColor: '#0e1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
               itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
-              formatter={(v: number) => [`R$ ${v.toLocaleString('pt-BR')}`, 'Saque']}
+              formatter={(v: any) => [`R$ ${v?.toLocaleString('pt-BR') || '0,00'}`, 'Saque']}
             />
             <Area
               type="monotone"
