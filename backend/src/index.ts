@@ -888,26 +888,27 @@ app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
     });
     res.json(remittance);
 
-    // Send push notification to operator and owner
+    // Send push notification to all team members
     try {
-      const team = await prisma.team.findUnique({ where: { id: Number(teamId) } });
-      if (team) {
-        // Notify operator
-        sendPushNotification(
-          req.user.userId,
-          "Remessa Enviada",
-          `Sua remessa de ${platform} no valor de R$ ${calculatedValue.toFixed(2)} foi registrada.`
-        ).catch(e => console.error(e));
-        
-        // Notify owner
-        if (team.ownerId !== req.user.userId) {
-          sendPushNotification(
-            team.ownerId,
-            "Nova Remessa na Equipe",
-            `Um operador enviou uma remessa de ${platform}: R$ ${calculatedValue.toFixed(2)}`
-          ).catch(e => console.error(e));
-        }
-      }
+      const teamMembers = await prisma.teamMember.findMany({ 
+        where: { teamId: Number(teamId) },
+        include: { user: true }
+      });
+      
+      const operator = teamMembers.find((m: any) => m.userId === req.user.userId);
+      const operatorName = operator ? operator.user.name : "Alguém";
+      
+      const formattedProfit = calculatedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const notificationTitle = "Remessa enviada";
+      const notificationBody = `Op. ${operatorName} finalizou uma remessa - Lucro: ${formattedProfit}`;
+      
+      // Notify everyone in the team
+      const notificationPromises = teamMembers.map((m: any) => 
+        sendPushNotification(m.userId, notificationTitle, notificationBody)
+          .catch(e => console.error(`Error notifying user ${m.userId}:`, e))
+      );
+      
+      await Promise.all(notificationPromises);
     } catch (pnError) {
       console.error("Push notification error in remittance:", pnError);
     }
