@@ -575,7 +575,7 @@ app.post("/api/daily-records", authenticate, (req, res) => __awaiter(void 0, voi
         res.json(record);
         // Send push notification
         const formattedProfit = profit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        sendPushNotification(req.user.userId, "Item Registrado", `Novo registro em ${platform}: Lucro de ${formattedProfit}`).catch(e => console.error("Notification error:", e));
+        sendPushNotification(req.user.userId, "Remessa registrada!", `Novo registro em ${platform}: Lucro de ${formattedProfit}`).catch(e => console.error("Notification error:", e));
     }
     catch (error) {
         res.status(500).json({ error: "Internal error" });
@@ -896,8 +896,8 @@ app.post("/api/teams/remittance", authenticate, (req, res) => __awaiter(void 0, 
             const operator = teamMembers.find((m) => m.userId === req.user.userId);
             const operatorName = operator ? operator.user.name : "Alguém";
             const formattedProfit = calculatedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            const notificationTitle = "Remessa enviada";
-            const notificationBody = `Op. ${operatorName} finalizou uma remessa - Lucro: ${formattedProfit}`;
+            const notificationTitle = "Remessa registrada!";
+            const notificationBody = `Op. ${operatorName} finalizou remessa - Lucro ${formattedProfit}`;
             // Notify everyone in the team
             const notificationPromises = teamMembers.map((m) => sendPushNotification(m.userId, notificationTitle, notificationBody)
                 .catch(e => console.error(`Error notifying user ${m.userId}:`, e)));

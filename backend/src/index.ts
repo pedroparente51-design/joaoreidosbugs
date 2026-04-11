@@ -566,7 +566,7 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
     const formattedProfit = profit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     sendPushNotification(
       req.user.userId,
-      "Item Registrado",
+      "Remessa registrada!",
       `Novo registro em ${platform}: Lucro de ${formattedProfit}`
     ).catch(e => console.error("Notification error:", e));
   } catch (error) { res.status(500).json({ error: "Internal error" }); }
@@ -899,8 +899,8 @@ app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
       const operatorName = operator ? operator.user.name : "Alguém";
       
       const formattedProfit = calculatedValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      const notificationTitle = "Remessa enviada";
-      const notificationBody = `Op. ${operatorName} finalizou uma remessa - Lucro: ${formattedProfit}`;
+      const notificationTitle = "Remessa registrada!";
+      const notificationBody = `Op. ${operatorName} finalizou remessa - Lucro ${formattedProfit}`;
       
       // Notify everyone in the team
       const notificationPromises = teamMembers.map((m: any) => 
