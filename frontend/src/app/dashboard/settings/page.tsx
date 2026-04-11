@@ -281,7 +281,7 @@ export default function SettingsPage() {
                             <button 
                               onClick={async () => {
                                 const api = (await import("@/lib/api")).default;
-                                await api.post("/api/notifications/test");
+                                await api.post("/notifications/test");
                                 addToast("Teste de notificação enviado!", "success");
                               }}
                               className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest transition-all"
