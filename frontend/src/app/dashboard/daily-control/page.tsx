@@ -115,7 +115,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
         {cycles.map((cycle, index) => (
           <div key={index} className="space-y-4 p-4 border border-white/5 rounded-2xl bg-white/[0.02]">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-accent-cyan uppercase tracking-widest">Ciclo {index + 1}</span>
+              <span className="text-xs font-bold text-accent-cyan uppercase tracking-widest">Depositante {index + 1}</span>
               {!editingRecord && cycles.length > 1 && (
                 <button type="button" onClick={() => setCycles(cycles.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest">Remover</button>
               )}
@@ -178,7 +178,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
             onClick={() => setCycles([...cycles, { platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }])}
             className="w-full border border-dashed border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
           >
-            <Plus size={14} /> Adicionar novo ciclo
+            <Plus size={14} /> Adicionar novo depositante
           </button>
         )}
 
@@ -187,7 +187,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
             type="submit"
             className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-[11px]"
           >
-            {editingRecord ? "Salvar Alterações" : `Adicionar ${cycles.length} Registro(s)`}
+            {editingRecord ? "Salvar Alterações" : `Adicionar ${cycles.length} Depositante(s)`}
           </button>
         </div>
       </form>
