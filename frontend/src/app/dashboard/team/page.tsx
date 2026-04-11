@@ -39,6 +39,15 @@ interface Member {
   role: TeamRole;
 }
 
+interface TeamExpense {
+  id: number;
+  name: string;
+  amount: number;
+  category: string;
+  date: string;
+  user: { name: string };
+}
+
 interface FeedItem {
   id: number;
   operator: { name: string };
@@ -81,6 +90,8 @@ export default function TeamPage() {
   // Dashboard Data
   const [stats, setStats] = useState({ 
     teamProfit: 0, 
+    totalExpenses: 0,
+    teamNetProfit: 0,
     totalRemittance: 0, 
     operatorsCount: 0, 
     goalsCount: 0, 
@@ -91,13 +102,15 @@ export default function TeamPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [goals, setGoals] = useState<TeamGoal[]>([]);
+  const [teamExpenses, setTeamExpenses] = useState<TeamExpense[]>([]);
   const [operations, setOperations] = useState<TeamOperation[]>([]);
-  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "OPERATIONS" | "GOALS" | "REMITTANCES">("OVERVIEW");
+  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "OPERATIONS" | "GOALS" | "REMITTANCES" | "EXPENSES">("OVERVIEW");
   
   // Modals State
   const [isOpModalOpen, setIsOpModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isRemitModalOpen, setIsRemitModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
   const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false);
 
@@ -105,6 +118,7 @@ export default function TeamPage() {
   const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0 });
   const [goalForm, setGoalForm] = useState({ platform: "", target: 0 });
   const [remitForm, setRemitForm] = useState({ platform: "", deposit: 0, withdraw: 0, bau: 0, observation: "" });
+  const [expenseForm, setExpenseForm] = useState({ name: "", amount: 0, category: "Proxy", date: new Date().toISOString().split('T')[0] });
 
   const userRole = useMemo(() => {
     if (!team || !members.length) return "OPERATOR";
@@ -140,17 +154,19 @@ export default function TeamPage() {
 
   const fetchDashboardData = async (teamId: number) => {
     try {
-      const [dbResponse, feedResponse, goalsResponse, opsResponse] = await Promise.all([
+      const [dbResponse, feedResponse, goalsResponse, opsResponse, expensesResponse] = await Promise.all([
         api.get(`/teams/dashboard?teamId=${teamId}`),
         api.get(`/teams/remittance/feed?teamId=${teamId}`),
         api.get(`/teams/goals?teamId=${teamId}`),
-        api.get(`/teams/operations?teamId=${teamId}`)
+        api.get(`/teams/operations?teamId=${teamId}`),
+        api.get(`/teams/expenses?teamId=${teamId}`)
       ]);
       setStats(dbResponse.data);
       setMembers(dbResponse.data.members);
       setFeed(feedResponse.data);
       setGoals(goalsResponse.data);
       setOperations(opsResponse.data);
+      setTeamExpenses(expensesResponse.data);
     } catch (e) { console.error(e); }
   };
 
@@ -218,6 +234,26 @@ export default function TeamPage() {
       setIsRemitModalOpen(false);
       alert("Remessa registrada com sucesso!");
     } catch (e) { alert("Erro ao registrar remessa"); }
+  };
+
+  const submitExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!team) return;
+    try {
+      await api.post("/teams/expenses", { ...expenseForm, teamId: team.id });
+      fetchDashboardData(team.id);
+      setExpenseForm({ name: "", amount: 0, category: "Proxy", date: new Date().toISOString().split('T')[0] });
+      setIsExpenseModalOpen(false);
+      alert("Despesa registrada!");
+    } catch (e) { alert("Erro ao registrar despesa"); }
+  };
+
+  const deleteTeamExpense = async (id: number) => {
+    if (!confirm("Excluir esta despesa?")) return;
+    try {
+      await api.delete(`/teams/expenses/${id}`);
+      if (team) fetchDashboardData(team.id);
+    } catch (e) { alert("Erro ao excluir"); }
   };
 
   const handleTeamReset = async () => {
@@ -350,8 +386,8 @@ export default function TeamPage() {
       </div>
 
       <div className="w-full bg-white/[0.03] border border-white/5 p-1 rounded-2xl flex no-scrollbar overflow-x-auto">
-        {(['OVERVIEW', 'OPERATIONS', 'GOALS', 'REMITTANCES'] as const).map((tab) => {
-          const labels = { OVERVIEW: 'Visão Geral', OPERATIONS: 'Operação', GOALS: 'Metas', REMITTANCES: 'Remessas' };
+        {(['OVERVIEW', 'OPERATIONS', 'GOALS', 'REMITTANCES', 'EXPENSES'] as const).map((tab) => {
+          const labels = { OVERVIEW: 'Visão Geral', OPERATIONS: 'Operação', GOALS: 'Metas', REMITTANCES: 'Remessas', EXPENSES: 'Despesas' };
           return <button key={tab} onClick={() => setActiveTab(tab)} className={cn("flex-1 min-w-[120px] py-3 text-[10px] font-bold rounded-xl transition-all uppercase tracking-widest", activeTab === tab ? "bg-white text-black shadow-lg" : "text-slate-500 hover:text-slate-300")}>{labels[tab]}</button>;
         })}
       </div>
@@ -360,9 +396,9 @@ export default function TeamPage() {
         <div className="space-y-8 animate-fade-in-up">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <MetricCard title="Remessas Totais" value={stats.totalRemittance.toString()} icon={<TrendingUp size={20} />} color="blue" />
-            <MetricCard title="Lucro da Equipe" value={formatValue(`R$ ${stats.teamProfit?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || "0,00"}`)} icon={<CircleDollarSign size={20} />} color="purple" />
-            <MetricCard title="Metas Batidas" value={stats.finishedGoals.toString()} icon={<Target size={20} />} color="cyan" />
-            <MetricCard title="Operadores Ativos" value={stats.operatorsCount.toString()} icon={<Users size={20} />} color="emerald" />
+            <MetricCard title="Lucro Bruto" value={formatValue(`R$ ${stats.teamProfit?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || "0,00"}`)} icon={<CircleDollarSign size={20} />} color="purple" />
+            <MetricCard title="Lucro Líquido" value={formatValue(`R$ ${stats.teamNetProfit?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || "0,00"}`)} icon={<Zap size={20} />} color="emerald" trend={stats.teamNetProfit >= 0 ? "Positivo" : "Negativo"} />
+            <MetricCard title="Gastos da Equipe" value={formatValue(`R$ ${stats.totalExpenses?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || "0,00"}`)} icon={<Trash2 size={20} />} color="red" negative />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -735,9 +771,93 @@ export default function TeamPage() {
           </Modal>
         </div>
       )}
+
+      {activeTab === "EXPENSES" && (
+        <div className="animate-fade-in-up space-y-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Despesas da Equipe</h2>
+            {canManage && (
+              <button 
+                onClick={() => setIsExpenseModalOpen(true)} 
+                className="bg-primary hover:bg-primary/90 text-white flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-primary/20"
+              >
+                <Plus size={16} /> Nova Despesa
+              </button>
+            )}
+          </div>
+
+          <div className="glass-card overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-white/5 border-b border-white/5">
+                <tr>
+                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Despesa</th>
+                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Categoria</th>
+                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Valor</th>
+                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Registrado por</th>
+                  <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data</th>
+                  {canManage && <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Ações</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {teamExpenses.map(exp => (
+                  <tr key={exp.id} className="hover:bg-white/[0.01] transition-colors group">
+                    <td className="px-6 py-4 text-xs font-bold text-white uppercase">{exp.name}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-[10px] px-2 py-1 bg-white/5 rounded-md text-slate-400 font-bold uppercase">{exp.category}</span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-red-500">{formatValue(`R$ ${exp.amount.toFixed(2)}`)}</td>
+                    <td className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{exp.user.name}</td>
+                    <td className="px-6 py-4 text-[10px] text-slate-500">{new Date(exp.date).toLocaleDateString()}</td>
+                    {canManage && (
+                      <td className="px-6 py-4">
+                        <button onClick={() => deleteTeamExpense(exp.id)} className="p-2 text-slate-500 hover:text-red-500 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {teamExpenses.length === 0 && <div className="p-20 text-center opacity-30 italic text-sm">Nenhuma despesa registrada...</div>}
+          </div>
+
+          <Modal 
+            isOpen={isExpenseModalOpen} 
+            onClose={() => setIsExpenseModalOpen(false)} 
+            title="Registrar Despesa de Equipe"
+            icon={<Receipt size={20} />}
+          >
+            <form onSubmit={submitExpense} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Descrição</label>
+                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: Upgrade de Servidor" value={expenseForm.name} onChange={e => setExpenseForm({ ...expenseForm, name: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor (R$)</label>
+                  <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" value={expenseForm.amount} onChange={e => setExpenseForm({ ...expenseForm, amount: parseFloat(e.target.value) || 0 })} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                  <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" value={expenseForm.category} onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}>
+                    <option value="Proxy" className="text-black">Proxy</option>
+                    <option value="SMS" className="text-black">SMS</option>
+                    <option value="Bot" className="text-black">Bot</option>
+                    <option value="Outros" className="text-black">Outros</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="w-full bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">REGISTRAR GASTO</button>
+            </form>
+          </Modal>
+        </div>
+      )}
     </div>
   );
 }
+
+import { Receipt, Users, Plus, UserPlus, Shield, TrendingUp, Target, CircleDollarSign, History, Zap, ArrowRight, Crown, Share2, Trash2, Edit2 } from "lucide-react";
 
 function MetricCard({ title, value, icon, trend, color, negative }: any) {
   const colorMap: any = {

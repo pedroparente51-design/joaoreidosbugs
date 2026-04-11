@@ -24,6 +24,7 @@ model User {
   ownedTeams      Team[]           @relation("TeamOwner")
   teamMemberships TeamMember[]
   remittances     TeamRemittance[] @relation("Operator")
+  teamExpenses    TeamExpense[]
 }
 
 model Team {
@@ -39,6 +40,7 @@ model Team {
   members     TeamMember[]
   operations  TeamOperation[]
   remittances TeamRemittance[]
+  expenses    TeamExpense[]
 }
 
 model TeamMember {
@@ -163,6 +165,19 @@ model Expense {
   date      String
   userId    Int
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TeamExpense {
+  id        Int      @id @default(autoincrement())
+  name      String
+  amount    Float
+  category  String
+  date      String
+  teamId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

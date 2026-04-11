@@ -621,7 +621,7 @@ app.get("/api/teams/dashboard", authenticate, (req, res) => __awaiter(void 0, vo
         if (!teamId)
             return res.status(400).json({ error: "teamId required" });
         const id = Number(teamId);
-        const [team, allRemittances, members, goals] = yield Promise.all([
+        const [team, allRemittances, members, goals, teamExpenses] = yield Promise.all([
             prisma.team.findUnique({ where: { id } }),
             prisma.teamRemittance.findMany({
                 where: { teamId: id },
@@ -631,10 +631,13 @@ app.get("/api/teams/dashboard", authenticate, (req, res) => __awaiter(void 0, vo
                 where: { teamId: id },
                 include: { user: { select: { name: true, email: true } } }
             }),
-            prisma.teamGoal.findMany({ where: { teamId: id } })
+            prisma.teamGoal.findMany({ where: { teamId: id } }),
+            prisma.teamExpense.findMany({ where: { teamId: id } })
         ]);
         // Calculate requested stats
-        const teamProfit = allRemittances.reduce((acc, r) => acc + r.value, 0);
+        const totalRemittanceValue = allRemittances.reduce((acc, r) => acc + r.value, 0);
+        const totalExpenses = teamExpenses.reduce((acc, e) => acc + e.amount, 0);
+        const teamNetProfit = totalRemittanceValue - totalExpenses;
         const operatorsCount = members.length;
         const activeGoals = goals.filter(g => g.status === 'ACTIVE').length;
         const finishedGoals = goals.filter(g => g.status === 'CLOSED' || g.status === 'COMPLETED').length;
@@ -650,7 +653,9 @@ app.get("/api/teams/dashboard", authenticate, (req, res) => __awaiter(void 0, vo
         const operatorsRanking = Object.values(rankingMap)
             .sort((a, b) => b.profit - a.profit);
         res.json({
-            teamProfit,
+            teamProfit: totalRemittanceValue,
+            totalExpenses,
+            teamNetProfit,
             totalRemittance: allRemittances.length,
             operatorsCount,
             goalsCount: goals.length,
@@ -750,6 +755,54 @@ app.post("/api/teams/remittance", authenticate, (req, res) => __awaiter(void 0, 
     }
     catch (error) {
         console.error("Create remittance error:", error);
+        res.status(500).json({ error: "Internal error" });
+    }
+}));
+// --- TEAM EXPENSES ---
+app.get("/api/teams/expenses", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { teamId } = req.query;
+        if (!teamId)
+            return res.status(400).json({ error: "teamId required" });
+        const expenses = yield prisma.teamExpense.findMany({
+            where: { teamId: Number(teamId) },
+            include: { user: { select: { name: true } } },
+            orderBy: { date: 'desc' }
+        });
+        res.json(expenses);
+    }
+    catch (error) {
+        res.status(500).json({ error: "Internal error" });
+    }
+}));
+app.post("/api/teams/expenses", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { teamId, name, amount, category, date } = req.body;
+        // Somente owners/admins? Para simplificar, vou permitir que qualquer membro adicione, mas registre o user.
+        // O USER pode mudar isso se quiser restrição maior.
+        const expense = yield prisma.teamExpense.create({
+            data: {
+                teamId: Number(teamId),
+                userId: req.user.userId,
+                name,
+                amount: Number(amount),
+                category,
+                date: date || new Date().toISOString().split('T')[0]
+            }
+        });
+        res.json(expense);
+    }
+    catch (error) {
+        console.error("Create team expense error:", error);
+        res.status(500).json({ error: "Internal error" });
+    }
+}));
+app.delete("/api/teams/expenses/:id", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield prisma.teamExpense.delete({ where: { id: Number(req.params.id) } });
+        res.json({ success: true });
+    }
+    catch (error) {
         res.status(500).json({ error: "Internal error" });
     }
 }));
