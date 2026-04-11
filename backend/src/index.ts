@@ -798,8 +798,21 @@ app.get("/api/teams/dashboard", authenticate, async (req: any, res: any) => {
       rankingMap[r.operatorId].profit += r.value;
       rankingMap[r.operatorId].count += 1;
     });
-
     const operatorsRanking = Object.values(rankingMap)
+      .sort((a, b) => b.profit - a.profit);
+
+    // Platform/Network Ranking (which platform generated the most profit)
+    const platformMap: Record<string, { platform: string, profit: number, count: number, totalCycles: number }> = {};
+    allRemittances.forEach(r => {
+      const key = r.platform;
+      if (!platformMap[key]) {
+        platformMap[key] = { platform: key, profit: 0, count: 0, totalCycles: 0 };
+      }
+      platformMap[key].profit += r.value;
+      platformMap[key].count += 1;
+      platformMap[key].totalCycles += parseInt(r.cycles || "1") || 1;
+    });
+    const platformRanking = Object.values(platformMap)
       .sort((a, b) => b.profit - a.profit);
 
     res.json({
@@ -816,7 +829,8 @@ app.get("/api/teams/dashboard", authenticate, async (req: any, res: any) => {
         name: m.user.name, 
         role: m.role 
       })),
-      operatorsRanking
+      operatorsRanking,
+      platformRanking
     });
   } catch (error) { 
     console.error("Dashboard error:", error);

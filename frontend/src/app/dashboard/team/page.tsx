@@ -101,7 +101,8 @@ export default function TeamPage() {
     goalsCount: 0, 
     activeGoals: 0, 
     finishedGoals: 0,
-    operatorsRanking: [] as { name: string, profit: number, count: number }[]
+    operatorsRanking: [] as { name: string, profit: number, count: number }[],
+    platformRanking: [] as { platform: string, profit: number, count: number, totalCycles: number }[]
   });
   const [members, setMembers] = useState<Member[]>([]);
   const [feed, setFeed] = useState<FeedItem[]>([]);
@@ -435,6 +436,58 @@ export default function TeamPage() {
                   </div>
                 )}
               </div>
+
+              {/* Platform Ranking */}
+              {stats.platformRanking.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp size={18} className="text-amber-500" />
+                    <h2 className="text-sm font-bold text-white uppercase tracking-widest">Ranking de Redes — Lucro</h2>
+                  </div>
+                  <div className="glass-card p-6 space-y-5">
+                    {(() => {
+                      const maxProfit = Math.max(...stats.platformRanking.map(p => p.profit), 1);
+                      return stats.platformRanking.map((p, idx) => (
+                        <div key={p.platform} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] flex-shrink-0",
+                                idx === 0 ? "bg-amber-500/20 text-amber-400" :
+                                idx === 1 ? "bg-slate-400/20 text-slate-300" :
+                                idx === 2 ? "bg-orange-700/20 text-orange-600" : "bg-white/5 text-slate-500"
+                              )}>
+                                {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}º`}
+                              </div>
+                              <div>
+                                <p className="text-xs font-black text-white uppercase tracking-tight">{p.platform}</p>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{p.count} remessa(s) • {p.totalCycles} ciclo(s)</p>
+                              </div>
+                            </div>
+                            <p className={cn(
+                              "text-sm font-black",
+                              p.profit >= 0 ? "text-accent-blue" : "text-primary"
+                            )}>
+                              {formatValue(`R$ ${p.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}
+                            </p>
+                          </div>
+                          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div
+                              className={cn(
+                                "h-full rounded-full transition-all duration-700",
+                                idx === 0 ? "bg-amber-500" :
+                                idx === 1 ? "bg-slate-400" :
+                                idx === 2 ? "bg-orange-600" : "bg-primary/60"
+                              )}
+                              style={{ width: `${Math.max((p.profit / maxProfit) * 100, 5)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-6">
               <div className="flex items-center gap-3"><Users size={18} className="text-primary" /><h2 className="text-sm font-bold text-white uppercase tracking-widest">Ranking de Operadores</h2></div>
