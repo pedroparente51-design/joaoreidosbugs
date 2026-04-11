@@ -517,7 +517,7 @@ export default function TeamPage() {
                           </div>
                           <div>
                             <p className="text-xs font-black text-white uppercase tracking-tight">{p.platform}</p>
-                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{p.count} rem. • {p.totalCycles} ciclo(s)</p>
+                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{p.count} rem. • {p.totalCycles} depositante(s)</p>
                           </div>
                         </div>
                         <p className={cn(
@@ -759,7 +759,7 @@ export default function TeamPage() {
                   <tr>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Plataforma</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Depósito/Saque</th>
-                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Ciclos</th>
+                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Depositantes</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Lucro Total</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data</th>
                   </tr>
@@ -791,7 +791,7 @@ export default function TeamPage() {
               {remitCycles.map((cycle, index) => (
                 <div key={index} className="space-y-4 p-4 border border-white/5 rounded-2xl bg-white/[0.02]">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-accent-cyan uppercase tracking-widest">Ciclo {index + 1}</span>
+                    <span className="text-xs font-bold text-accent-cyan uppercase tracking-widest">Depositante {index + 1}</span>
                     {remitCycles.length > 1 && (
                       <button type="button" onClick={() => setRemitCycles(remitCycles.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest">Remover</button>
                     )}
@@ -868,7 +868,7 @@ export default function TeamPage() {
                 onClick={() => setRemitCycles([...remitCycles, { platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }])}
                 className="w-full border border-dashed border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
               >
-                <Plus size={14} /> Adicionar novo ciclo
+                <Plus size={14} /> Adicionar novo depositante
               </button>
               
               <button type="submit" className="w-full bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">ENVIAR REMESSA</button>
