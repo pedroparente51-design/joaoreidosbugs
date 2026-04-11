@@ -56,6 +56,32 @@ const seedAdmin = () => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 seedAdmin();
+// Middleware for JWT verification
+const authenticate = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        console.log("Auth failed: No token");
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+    const token = authHeader.split(" ")[1];
+    try {
+        const payload = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+        req.user = payload;
+        next();
+    }
+    catch (error) {
+        console.log("Auth failed: Invalid token", error);
+        return res.status(401).json({ error: "Invalid token" });
+    }
+};
+const isAdmin = (req, res, next) => {
+    if (req.user && req.user.role === 'ADMIN') {
+        next();
+    }
+    else {
+        res.status(403).json({ error: "Acesso negado. Apenas administradores podem acessar esta rota." });
+    }
+};
 // Auth routes
 app.post("/api/auth/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, email, password } = req.body;
@@ -87,6 +113,37 @@ app.post("/api/auth/register", (req, res) => __awaiter(void 0, void 0, void 0, f
         res.status(500).json({ error: "Internal server error" });
     }
 }));
+// --- USER PROFILE ROUTES ---
+app.get("/api/user/me", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const user = yield prisma.user.findUnique({
+            where: { id: req.user.userId },
+            select: { id: true, name: true, email: true, role: true, image: true }
+        });
+        res.json(user);
+    }
+    catch (error) {
+        res.status(500).json({ error: "Internal error" });
+    }
+}));
+app.post("/api/user/profile", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { name, image } = req.body;
+        const updatedUser = yield prisma.user.update({
+            where: { id: req.user.userId },
+            data: { name, image },
+            select: { id: true, name: true, email: true, role: true, image: true }
+        });
+        // Log Activity
+        yield prisma.activity.create({
+            data: { userId: req.user.userId, actionType: "UPDATE_PROFILE", description: "Atualizou informações do perfil" }
+        });
+        res.json(updatedUser);
+    }
+    catch (error) {
+        res.status(500).json({ error: "Internal error" });
+    }
+}));
 app.post("/api/auth/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
     try {
@@ -106,39 +163,13 @@ app.post("/api/auth/login", (req, res) => __awaiter(void 0, void 0, void 0, func
             data: { userId: user.id, actionType: "LOGIN", description: "Login realizado com sucesso" }
         });
         const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "1d" });
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, image: user.image } });
     }
     catch (error) {
         console.error("Login error:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 }));
-// Middleware for JWT verification
-const authenticate = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        console.log("Auth failed: No token");
-        return res.status(401).json({ error: "Unauthorized" });
-    }
-    const token = authHeader.split(" ")[1];
-    try {
-        const payload = jsonwebtoken_1.default.verify(token, JWT_SECRET);
-        req.user = payload;
-        next();
-    }
-    catch (error) {
-        console.log("Auth failed: Invalid token", error);
-        return res.status(401).json({ error: "Invalid token" });
-    }
-};
-const isAdmin = (req, res, next) => {
-    if (req.user && req.user.role === 'ADMIN') {
-        next();
-    }
-    else {
-        res.status(403).json({ error: "Acesso negado. Apenas administradores podem acessar esta rota." });
-    }
-};
 // --- ADMIN ROUTES ---
 app.get("/api/admin/metrics", authenticate, isAdmin, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -704,12 +735,13 @@ app.post("/api/teams/operations", authenticate, (req, res) => __awaiter(void 0, 
                 }
             });
             // Se houver um target, cria a meta automaticamente
-            if (target && Number(target) > 0) {
+            const goalTarget = parseInt(target);
+            if (!isNaN(goalTarget) && goalTarget > 0) {
                 yield tx.teamGoal.create({
                     data: {
                         teamId: Number(teamId),
                         platform,
-                        target: Number(target),
+                        target: goalTarget,
                         status: "ACTIVE"
                     }
                 });

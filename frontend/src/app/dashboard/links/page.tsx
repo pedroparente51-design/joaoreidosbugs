@@ -10,10 +10,10 @@ const platformLinks = [
     href: "https://www.instagram.com/joaoreidosbugs1?igsh=Mmo5dmNvN2RjenNq",
   },
   {
-    name: "YouTube",
+    name: "Telegram",
     description: "Canal / Aulas",
     icon: Play,
-    href: "https://youtube.com/@jottexoficial",
+    href: "https://t.me/+HOawpmlHtwY2YWEx",
   },
   {
     name: "Loja / Proxy",
@@ -25,7 +25,7 @@ const platformLinks = [
     name: "Grupo WhatsApp",
     description: "Suporte / Comunidade",
     icon: MessageCircle,
-    href: "https://chat.whatsapp.com/your-group",
+    href: "https://chat.whatsapp.com/IWbr90bqc0YDqbrTy3w2nM",
   },
 ];
 

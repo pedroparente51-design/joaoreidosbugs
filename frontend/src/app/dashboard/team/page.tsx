@@ -16,7 +16,8 @@ import {
   Share2,
   Trash2,
   Edit2,
-  Zap
+  Zap,
+  Receipt
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -803,7 +804,7 @@ export default function TeamPage() {
   );
 }
 
-import { Receipt, Users, Plus, UserPlus, Shield, TrendingUp, Target, CircleDollarSign, History, Zap, ArrowRight, Crown, Share2, Trash2, Edit2 } from "lucide-react";
+
 
 function MetricCard({ title, value, icon, trend, color, negative }: any) {
   const colorMap: any = {

@@ -14,6 +14,8 @@ interface DashboardContextType {
   userCount: number;
   formatValue: (value: string | number) => string;
   userRole: string;
+  userName: string;
+  userImage: string | null;
   refreshUser: () => void;
   toasts: Toast[];
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -25,6 +27,8 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const [isValuesVisible, setIsValuesVisible] = useState<boolean>(true);
   const [userRole, setUserRole] = useState<string>("USER");
+  const [userName, setUserName] = useState<string>("Usuário");
+  const [userImage, setUserImage] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [userCount, setUserCount] = useState(11725);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -47,13 +51,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (user.role) {
-           setUserRole(user.role);
-        } else {
-           setUserRole("USER");
-        }
+        setUserRole(user.role || "USER");
+        setUserName(user.name || "Usuário");
+        setUserImage(user.image || null);
       } catch (e) {
         setUserRole("USER");
+        setUserName("Usuário");
+        setUserImage(null);
       }
     }
   };
@@ -116,6 +120,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       userCount, 
       formatValue, 
       userRole, 
+      userName,
+      userImage,
       refreshUser,
       toasts,
       addToast,

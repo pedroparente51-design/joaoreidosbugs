@@ -8,9 +8,10 @@ import Modal from "@/components/layout/Modal";
 import { useDashboard } from "@/components/layout/DashboardContext";
 
 export default function SettingsPage() {
-  const { addToast } = useDashboard();
+  const { addToast, refreshUser, userImage, userName, userRole } = useDashboard();
   const [activeTab, setActiveTab] = useState("profile");
   const [userEmail, setUserEmail] = useState("");
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -19,15 +20,18 @@ export default function SettingsPage() {
         try {
           const u = JSON.parse(stored);
           setUserEmail(u.email || "");
+          setProfileForm(prev => ({ ...prev, name: u.name || prev.name, image: u.image || "" }));
         } catch {}
       }
     }
   }, []);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "João Rei dos Bugs",
+    image: "",
     bio: "Especialista em automação e growth hacking. Focado em escalar operações de alto nível."
   });
+
+
 
   const tabs = [
     { id: "profile", name: "Perfil", icon: User },
@@ -36,6 +40,27 @@ export default function SettingsPage() {
     { id: "notifications", name: "Notificações", icon: Bell },
     { id: "data", name: "Manutenção", icon: Database },
   ];
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const api = (await import("@/lib/api")).default;
+      const { data } = await api.post("/api/user/profile", { name: profileForm.name, image: profileForm.image });
+      
+      // Update local storage
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        localStorage.setItem('user', JSON.stringify({ ...u, name: data.name, image: data.image }));
+      }
+      
+      refreshUser();
+      addToast("Perfil atualizado com sucesso!", "success");
+      setIsProfileModalOpen(false);
+    } catch (e) {
+      addToast("Erro ao atualizar perfil", "error");
+    }
+  };
 
   const handleUserReset = async () => {
     if (!confirm("⚠️ ATENÇÃO: Isso apagará TODOS os seus Livros Diários, Despesas, Metas e Estatísticas pessoais. Seus dados de equipe NÃO serão afetados. Deseja continuar?")) return;
@@ -110,15 +135,19 @@ export default function SettingsPage() {
 
                    <div className="flex flex-col gap-10">
                       <div className="flex flex-col sm:flex-row items-center gap-8 p-8 bg-white/5 rounded-3xl border border-white/5 border-dashed">
-                         <div className="w-24 h-24 bg-primary/20 rounded-3xl flex items-center justify-center text-primary font-black text-3xl border border-primary/20 shadow-lg shadow-primary/20">
-                            JR
+                         <div className="w-24 h-24 bg-primary/20 rounded-3xl flex items-center justify-center text-primary font-black text-3xl border border-primary/20 shadow-lg shadow-primary/20 overflow-hidden">
+                            {userImage ? (
+                               <img src={userImage} alt="Profile" className="w-full h-full object-cover" />
+                             ) : (
+                               userName?.[0]?.toUpperCase() || "U"
+                             )}
                          </div>
                          <div className="flex flex-col gap-2 text-center sm:text-left">
-                            <h3 className="text-2xl font-black text-white tracking-tight uppercase">{profileForm.name}</h3>
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Administrador Master</span>
+                            <h3 className="text-2xl font-black text-white tracking-tight uppercase">{userName}</h3>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{userRole}</span>
                             <div className="flex items-center gap-2 justify-center sm:justify-start pt-2">
-                               <button className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest transition-all">Alterar Foto</button>
-                               <button className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black text-slate-500 uppercase tracking-widest transition-all">Remover</button>
+                               <button onClick={() => setIsProfileModalOpen(true)} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest transition-all">Alterar Perfil</button>
+
                             </div>
                          </div>
                       </div>
@@ -152,14 +181,25 @@ export default function SettingsPage() {
                      title="Editar Perfil"
                      icon={<User size={20} />}
                    >
-                     <form onSubmit={(e) => { e.preventDefault(); setIsProfileModalOpen(false); alert('Perfil atualizado!'); }} className="space-y-6">
+                    <form onSubmit={handleProfileUpdate} className="space-y-6">
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nome de Exibição</label>
                            <input 
+                              required
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all font-bold"
                               value={profileForm.name}
                               onChange={e => setProfileForm({ ...profileForm, name: e.target.value })}
-                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all font-bold"
                            />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Link da Foto (URL)</label>
+                           <input 
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all font-bold"
+                              placeholder="https://exemplo.com/foto.jpg"
+                              value={profileForm.image}
+                              onChange={e => setProfileForm({ ...profileForm, image: e.target.value })}
+                           />
+                           <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest pl-1">Cole o link de uma imagem pública.</p>
                         </div>
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Biografia</label>

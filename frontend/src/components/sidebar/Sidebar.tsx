@@ -39,7 +39,7 @@ const links = [
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { userRole } = useDashboard();
+  const { userRole, userName, userImage } = useDashboard();
 
   const handleLinkClick = () => {
     if (window.innerWidth < 768 && onClose) {
@@ -108,6 +108,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </Link>
             );
           })}
+        </div>
+
+        <div className="p-4 border-t border-white/5 bg-black/20">
+          <div className="flex items-center gap-3 p-2">
+            <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-black text-xs">
+              {userImage ? (
+                <img src={userImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                userName?.[0]?.toUpperCase() || "U"
+              )}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] font-black text-white uppercase truncate">{userName}</span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{userRole}</span>
+            </div>
+          </div>
         </div>
       </aside>
     </>

@@ -20,7 +20,7 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
-  const { isValuesVisible, toggleVisibility, formatValue } = useDashboard();
+  const { isValuesVisible, toggleVisibility, formatValue, userName, userImage } = useDashboard();
   const [time, setTime] = useState(new Date());
   const [totalMovimentado, setTotalMovimentado] = useState<number | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
@@ -97,8 +97,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
               Rei dos Bugs <span className="text-primary text-[10px] align-top font-black">PRO</span>
             </h1>
             <div className="hidden sm:flex items-center gap-2 mt-1">
-              <span className="text-[10px] text-gray-400 font-mono truncate max-w-[100px] lg:max-w-none">{userEmail}</span>
-              <span className="hidden lg:inline text-[10px] text-gray-600 font-mono">•</span>
+              <span className="text-[10px] text-gray-400 font-mono underline decoration-primary/30 truncate max-w-[150px]">{userName}</span>
             </div>
           </div>
         </div>
@@ -169,6 +168,18 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         >
           <LogOut size={18} />
         </button>
+
+        <div className="hidden md:flex items-center pl-4 border-l border-white/5 ml-2">
+          {userImage ? (
+            <div className="relative w-10 min-w-[2.5rem] h-10 rounded-full border-2 border-primary/30 overflow-hidden shadow-[0_0_15px_rgba(251,191,36,0.2)]">
+               <Image src={userImage} alt="Profile" fill className="object-cover" />
+            </div>
+          ) : (
+            <div className="w-10 min-w-[2.5rem] h-10 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-primary font-black text-xs shadow-[0_0_15px_rgba(251,191,36,0.1)]">
+               {userName?.[0]?.toUpperCase() || "U"}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
