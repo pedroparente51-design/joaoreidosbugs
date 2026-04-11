@@ -23,7 +23,20 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const { isValuesVisible, toggleVisibility, formatValue } = useDashboard();
   const [time, setTime] = useState(new Date());
   const [totalMovimentado, setTotalMovimentado] = useState<number | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        try {
+          const u = JSON.parse(stored);
+          setUserEmail(u.email || "");
+        } catch {}
+      }
+    }
+  }, []);
 
   useEffect(() => {
     api.get('/dashboard-summary')
@@ -84,7 +97,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
               Rei dos Bugs <span className="text-primary text-[10px] align-top font-black">PRO</span>
             </h1>
             <div className="hidden sm:flex items-center gap-2 mt-1">
-              <span className="text-[10px] text-gray-400 font-mono truncate max-w-[100px] lg:max-w-none">workpedro002@gmail.com</span>
+              <span className="text-[10px] text-gray-400 font-mono truncate max-w-[100px] lg:max-w-none">{userEmail}</span>
               <span className="hidden lg:inline text-[10px] text-gray-600 font-mono">•</span>
             </div>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Settings, User, Bell, Lock, Palette, Database, Save, LogOut, Edit2, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Modal from "@/components/layout/Modal";
@@ -10,6 +10,19 @@ import { useDashboard } from "@/components/layout/DashboardContext";
 export default function SettingsPage() {
   const { addToast } = useDashboard();
   const [activeTab, setActiveTab] = useState("profile");
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        try {
+          const u = JSON.parse(stored);
+          setUserEmail(u.email || "");
+        } catch {}
+      }
+    }
+  }, []);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "João Rei dos Bugs",
@@ -114,7 +127,7 @@ export default function SettingsPage() {
                          <div className="space-y-2">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Email Principal</span>
                             <div className="bg-white/[0.02] border border-white/5 rounded-2xl px-6 py-4 text-slate-400 font-bold text-sm">
-                               workpedro002@gmail.com
+                               {userEmail}
                             </div>
                          </div>
                          <div className="space-y-2">
