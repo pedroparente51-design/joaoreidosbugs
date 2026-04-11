@@ -28,7 +28,8 @@ app.use(cors({
   ],
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
@@ -839,7 +840,7 @@ app.post("/api/teams/goals", authenticate, async (req: any, res: any) => {
 
 app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
   try {
-    const { teamId, platform, deposit, withdraw, bau, observation } = req.body;
+    const { teamId, platform, deposit, withdraw, cycles, observation } = req.body;
     
     // Calcula o lucro real (Remessa) como Saque - Depósito
     const calculatedValue = (Number(withdraw) || 0) - (Number(deposit) || 0);
@@ -851,7 +852,7 @@ app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
         platform,
         deposit: Number(deposit) || 0,
         withdraw: Number(withdraw) || 0,
-        bau: Number(bau) || 0,
+        cycles: String(cycles || ""),
         value: calculatedValue,
         observation
       }

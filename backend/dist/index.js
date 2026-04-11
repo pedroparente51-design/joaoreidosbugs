@@ -33,7 +33,8 @@ app.use((0, cors_1.default)({
     ],
     credentials: true,
 }));
-app.use(express_1.default.json());
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 // Admin Seeding
@@ -841,7 +842,7 @@ app.post("/api/teams/goals", authenticate, (req, res) => __awaiter(void 0, void 
 }));
 app.post("/api/teams/remittance", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { teamId, platform, deposit, withdraw, bau, observation } = req.body;
+        const { teamId, platform, deposit, withdraw, cycles, observation } = req.body;
         // Calcula o lucro real (Remessa) como Saque - Depósito
         const calculatedValue = (Number(withdraw) || 0) - (Number(deposit) || 0);
         const remittance = yield prisma.teamRemittance.create({
@@ -851,7 +852,7 @@ app.post("/api/teams/remittance", authenticate, (req, res) => __awaiter(void 0, 
                 platform,
                 deposit: Number(deposit) || 0,
                 withdraw: Number(withdraw) || 0,
-                bau: Number(bau) || 0,
+                cycles: String(cycles || ""),
                 value: calculatedValue,
                 observation
             }

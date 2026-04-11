@@ -110,11 +110,11 @@ export function FinanceEvolution() {
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#e11d48" stopOpacity={0.3} />
+                <stop offset="5%" stopColor="#e11d48" stopOpacity={0.15} />
                 <stop offset="95%" stopColor="#e11d48" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff03" vertical={false} />
             <XAxis
               dataKey="name"
               axisLine={false}
@@ -123,17 +123,19 @@ export function FinanceEvolution() {
               dy={10}
             />
             <Tooltip
-              contentStyle={{ backgroundColor: '#0e1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-              itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+              contentStyle={{ backgroundColor: '#0e1117', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', backdropFilter: 'blur(10px)' }}
+              itemStyle={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
+              cursor={{ stroke: 'rgba(255,255,255,0.05)', strokeWidth: 1 }}
               formatter={(v: any) => [`R$ ${v?.toLocaleString('pt-BR') || '0,00'}`, 'Saque']}
             />
             <Area
-              type="monotone"
+              type="basis"
               dataKey="valor"
               stroke="#e11d48"
-              strokeWidth={3}
+              strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorValue)"
+              animationDuration={2000}
             />
           </AreaChart>
         </ResponsiveContainer>

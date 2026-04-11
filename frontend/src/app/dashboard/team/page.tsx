@@ -57,6 +57,7 @@ interface FeedItem {
   deposit: number;
   withdraw: number;
   bau: number;
+  cycles?: string;
   value: number;
   observation?: string;
   createdAt: string;
@@ -119,7 +120,7 @@ export default function TeamPage() {
   // Forms State
   const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: 0, average: 0, depositors: 0, target: 0 });
   const [goalForm, setGoalForm] = useState({ platform: "", target: 0 });
-  const [remitForm, setRemitForm] = useState({ platform: "", deposit: 0, withdraw: 0, bau: 0, observation: "" });
+  const [remitForm, setRemitForm] = useState({ platform: "", deposit: 0, withdraw: 0, cycles: "", observation: "" });
   const [expenseForm, setExpenseForm] = useState({ name: "", amount: 0, category: "Proxy", date: new Date().toISOString().split('T')[0] });
 
   const userRole = useMemo(() => {
@@ -220,7 +221,7 @@ export default function TeamPage() {
     try {
       await api.post("/teams/remittance", { ...remitForm, teamId: team.id });
       fetchDashboardData(team.id);
-      setRemitForm({ platform: "", deposit: 0, withdraw: 0, bau: 0, observation: "" });
+      setRemitForm({ platform: "", deposit: 0, withdraw: 0, cycles: "", observation: "" });
       setIsRemitModalOpen(false);
       alert("Remessa registrada com sucesso!");
     } catch (e) { alert("Erro ao registrar remessa"); }
@@ -651,7 +652,7 @@ export default function TeamPage() {
                   <tr>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Plataforma</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Depósito/Saque</th>
-                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Baú</th>
+                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Ciclos</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Lucro Total</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data</th>
                   </tr>
@@ -663,7 +664,7 @@ export default function TeamPage() {
                       <td className="px-6 py-4 text-[10px] font-bold text-slate-400">
                         IN: {formatValue(`R$ ${remit.deposit.toFixed(2)}`)} / OUT: {formatValue(`R$ ${remit.withdraw.toFixed(2)}`)}
                       </td>
-                      <td className="px-6 py-4 text-xs font-bold text-amber-500">{formatValue(`R$ ${remit.bau.toFixed(2)}`)}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-white uppercase tracking-tighter">{remit.cycles || "0"}</td>
                       <td className="px-6 py-4 text-xs font-bold text-accent-blue">{formatValue(`R$ ${remit.value.toFixed(2)}`)}</td>
                       <td className="px-6 py-4 text-[10px] text-slate-500">{new Date(remit.createdAt).toLocaleDateString()}</td>
                     </tr>
@@ -707,8 +708,8 @@ export default function TeamPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Baú (R$)</label>
-                <input type="number" required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={remitForm.bau} onChange={e => setRemitForm({ ...remitForm, bau: parseFloat(e.target.value) || 0 })} />
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Qtd de Ciclos</label>
+                <input required className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: 5" value={remitForm.cycles} onChange={e => setRemitForm({ ...remitForm, cycles: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Observação</label>

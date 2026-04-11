@@ -96,6 +96,7 @@ model TeamRemittance {
   deposit     Float    @default(0.0)
   withdraw    Float    @default(0.0)
   bau         Float    @default(0.0)
+  cycles      String?
   value       Float
   observation String?
   date        DateTime @default(now())

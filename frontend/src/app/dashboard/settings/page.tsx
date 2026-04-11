@@ -25,13 +25,27 @@ export default function SettingsPage() {
       }
     }
   }, []);
+
   const [profileForm, setProfileForm] = useState({
     name: "João Rei dos Bugs",
     image: "",
     bio: "Especialista em automação e growth hacking. Focado em escalar operações de alto nível."
   });
 
-
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        addToast("A imagem deve ter no máximo 2MB", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileForm({ ...profileForm, image: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const tabs = [
     { id: "profile", name: "Perfil", icon: User },
@@ -147,7 +161,6 @@ export default function SettingsPage() {
                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{userRole}</span>
                             <div className="flex items-center gap-2 justify-center sm:justify-start pt-2">
                                <button onClick={() => setIsProfileModalOpen(true)} className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black text-white uppercase tracking-widest transition-all">Alterar Perfil</button>
-
                             </div>
                          </div>
                       </div>
@@ -192,14 +205,30 @@ export default function SettingsPage() {
                            />
                         </div>
                         <div className="space-y-2">
-                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Link da Foto (URL)</label>
-                           <input 
-                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-all font-bold"
-                              placeholder="https://exemplo.com/foto.jpg"
-                              value={profileForm.image}
-                              onChange={e => setProfileForm({ ...profileForm, image: e.target.value })}
-                           />
-                           <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest pl-1">Cole o link de uma imagem pública.</p>
+                           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Foto de Perfil</label>
+                           <div className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-xl">
+                              <div className="w-12 h-12 bg-white/5 rounded-xl overflow-hidden shrink-0 border border-white/10">
+                                 {profileForm.image ? (
+                                    <img src={profileForm.image} alt="Preview" className="w-full h-full object-cover" />
+                                 ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-600 font-bold uppercase">{profileForm.name[0]}</div>
+                                 )}
+                              </div>
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                id="profile-photo-upload"
+                                onChange={handlePhotoChange}
+                              />
+                               <label 
+                                 htmlFor="profile-photo-upload"
+                                 className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black text-white uppercase tracking-widest cursor-pointer transition-all"
+                               >
+                                 Selecionar Foto
+                               </label>
+                           </div>
+                           <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest pl-1">Máximo 2MB. Formatos: JPG, PNG.</p>
                         </div>
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Biografia</label>
