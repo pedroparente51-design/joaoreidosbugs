@@ -18,7 +18,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <AuthGuard>
-      <div className="flex flex-col w-full bg-transparent relative" style={{ height: '100dvh', maxHeight: '100dvh' }}>
+      <div className="flex flex-col h-screen w-full bg-transparent relative" style={{ height: '100dvh' }}>
         {/* Background Decor */}
         <div className="fixed top-0 left-0 w-full h-full grid-overlay pointer-events-none opacity-40 z-0 text-primary" />
         
