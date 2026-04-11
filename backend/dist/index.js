@@ -34,7 +34,7 @@ const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 // Admin Seeding
 const seedAdmin = () => __awaiter(void 0, void 0, void 0, function* () {
-    const adminEmail = "joaoreidobugs@admin.com";
+    const adminEmail = "joaoreidobugs@gmail.com";
     try {
         const existingAdmin = yield prisma.user.findUnique({ where: { email: adminEmail } });
         if (!existingAdmin) {

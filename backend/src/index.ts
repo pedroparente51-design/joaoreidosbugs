@@ -25,7 +25,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 // Admin Seeding
 const seedAdmin = async () => {
-  const adminEmail = "joaoreidobugs@admin.com";
+  const adminEmail = "joaoreidobugs@gmail.com";
   try {
     const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (!existingAdmin) {
