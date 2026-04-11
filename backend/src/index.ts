@@ -233,7 +233,12 @@ const sendPushNotification = async (userId: number, title: string, body: string)
     where: { userId }
   });
 
-  const payload = JSON.stringify({ title, body });
+  const payload = JSON.stringify({ 
+    title, 
+    body,
+    icon: '/img/logo1.png',
+    badge: '/img/logo1.png'
+  });
 
   const notifications = subscriptions.map(sub => {
     const pushConfig = {
@@ -567,7 +572,7 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
       const bau = Number(c.bau) || 0;
       const salary = Number(c.salary) || 0;
       
-      const profit = withdraw + bau + salary - investment;
+      const profit = withdraw + bau + salary;
       totalProfit += profit;
 
       recordsToCreate.push({
@@ -611,7 +616,7 @@ app.put("/api/daily-records/:id", authenticate, async (req: any, res: any) => {
     const b = Number(bau) || 0;
     const s = Number(salary) || 0;
     
-    const profit = wd + b + s - inv;
+    const profit = wd + b + s;
     
     const record = await prisma.dailyRecord.update({
       where: { id: Number(req.params.id) },

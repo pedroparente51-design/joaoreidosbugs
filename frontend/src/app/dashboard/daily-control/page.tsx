@@ -121,20 +121,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
               )}
             </div>
             
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Plataforma</label>
-              <input
-                required
-                value={cycle.platform}
-                onChange={(e) => {
-                  const newCycles = [...cycles];
-                  newCycles[index].platform = e.target.value;
-                  setCycles(newCycles);
-                }}
-                className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all placeholder:text-slate-700 font-bold"
-                placeholder="Ex: Pinup, BC.Game..."
-              />
-            </div>
+
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -158,7 +145,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Baú (R$)</label>
-                <input required type="number" step="0.01" value={cycle.bau || ''} onChange={(e) => {
+                <input type="number" step="0.01" value={cycle.bau || ''} onChange={(e) => {
                   const newCycles = [...cycles];
                   newCycles[index].bau = parseFloat(e.target.value) || 0;
                   setCycles(newCycles);
@@ -166,7 +153,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Salário (R$)</label>
-                <input required type="number" step="0.01" value={cycle.salary || ''} onChange={(e) => {
+                <input type="number" step="0.01" value={cycle.salary || ''} onChange={(e) => {
                   const newCycles = [...cycles];
                   newCycles[index].salary = parseFloat(e.target.value) || 0;
                   setCycles(newCycles);
