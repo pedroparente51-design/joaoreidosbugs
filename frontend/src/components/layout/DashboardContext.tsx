@@ -20,7 +20,7 @@ interface DashboardContextType {
   toasts: Toast[];
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
-  subscribeToPush: () => Promise<void>;
+  subscribeToPush: () => Promise<boolean>;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -95,21 +95,25 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const subscribeToPush = async () => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
       console.warn("Push notifications not supported");
-      return;
+      return false;
     }
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', registration);
-
+      console.log('Registering Service Worker...');
+      const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        console.warn("Notification permission denied");
-        return;
+        alert("Permissão de notificação negada. Por favor, ative nas configurações do seu navegador.");
+        return false;
       }
 
       const api = (await import('@/lib/api')).default;
       const { data: { publicKey } } = await api.get('/notifications/public-key');
+
+      // Unsubscribe existing one just to be sure
+      const existingSub = await registration.pushManager.getSubscription();
+      if (existingSub) await existingSub.unsubscribe();
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -117,9 +121,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       });
 
       await api.post('/notifications/subscribe', subscription);
-      console.log("User subscribed to push notifications");
+      console.log("User subscribed to push notifications successfully");
+      return true;
     } catch (error) {
       console.error("Failed to subscribe to push notifications:", error);
+      return false;
     }
   };
 

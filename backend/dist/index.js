@@ -204,6 +204,16 @@ app.post("/api/notifications/subscribe", authenticate, (req, res) => __awaiter(v
         res.status(500).json({ error: "Failed to subscribe" });
     }
 }));
+app.post("/api/notifications/test", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        yield sendPushNotification(req.user.userId, "Notificação de Teste", "Parabéns! Suas notificações estão funcionando corretamente no PC e Celular. 🚀");
+        res.json({ success: true, message: "Teste disparado" });
+    }
+    catch (error) {
+        console.error("Test notification error:", error);
+        res.status(500).json({ error: "Erro ao enviar teste" });
+    }
+}));
 const sendPushNotification = (userId, title, body) => __awaiter(void 0, void 0, void 0, function* () {
     const subscriptions = yield prisma.pushSubscription.findMany({
         where: { userId }

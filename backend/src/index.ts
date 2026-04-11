@@ -214,6 +214,20 @@ app.post("/api/notifications/subscribe", authenticate, async (req: any, res: any
   }
 });
 
+app.post("/api/notifications/test", authenticate, async (req: any, res: any) => {
+  try {
+    await sendPushNotification(
+      req.user.userId,
+      "Notificação de Teste",
+      "Parabéns! Suas notificações estão funcionando corretamente no PC e Celular. 🚀"
+    );
+    res.json({ success: true, message: "Teste disparado" });
+  } catch (error) {
+    console.error("Test notification error:", error);
+    res.status(500).json({ error: "Erro ao enviar teste" });
+  }
+});
+
 const sendPushNotification = async (userId: number, title: string, body: string) => {
   const subscriptions = await prisma.pushSubscription.findMany({
     where: { userId }

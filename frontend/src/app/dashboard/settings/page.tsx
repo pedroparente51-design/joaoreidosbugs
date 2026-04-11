@@ -8,7 +8,7 @@ import Modal from "@/components/layout/Modal";
 import { useDashboard } from "@/components/layout/DashboardContext";
 
 export default function SettingsPage() {
-  const { addToast, refreshUser, userImage, userName, userRole } = useDashboard();
+  const { addToast, refreshUser, userImage, userName, userRole, subscribeToPush } = useDashboard();
   const [activeTab, setActiveTab] = useState("profile");
   const [userEmail, setUserEmail] = useState("");
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -263,28 +263,42 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="p-8 bg-white/5 border border-white/10 rounded-3xl space-y-8">
-                       <div className="flex items-center justify-between">
+                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                           <div className="space-y-1">
-                             <h4 className="text-sm font-black text-white uppercase tracking-widest">Notificações no Navegador</h4>
-                             <p className="text-[10px] text-slate-500 font-medium">Receba alertas de remessas e metas finalizadas</p>
+                             <h4 className="text-sm font-black text-white uppercase tracking-widest">Notificações no Navegador (Web Push)</h4>
+                             <p className="text-[10px] text-slate-500 font-medium">Receba alertas de remessas e metas mesmo no celular ou com navegador fechado.</p>
                           </div>
-                          <button 
-                            onClick={() => {
-                              if (!("Notification" in window)) {
-                                addToast("Seu navegador não suporta notificações.", "error");
-                                return;
-                              }
-                              Notification.requestPermission().then(permission => {
-                                if (permission === 'granted') {
-                                  addToast("Notificações ativadas com sucesso!", "success");
-                                  new Notification("Sucesso!", { body: "Notificações ativadas com sucesso." });
-                                }
-                              });
-                            }}
-                            className="px-6 py-3 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl text-[10px] font-black text-primary uppercase tracking-widest transition-all"
-                          >
-                             Ativar Agora
-                          </button>
+                          <div className="flex flex-wrap gap-4">
+                            <button 
+                              onClick={async () => {
+                                const success = await subscribeToPush();
+                                if (success) addToast("Notificações ativadas!", "success");
+                              }}
+                              className="px-6 py-3 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl text-[10px] font-black text-primary uppercase tracking-widest transition-all"
+                            >
+                               Ativar Agora
+                            </button>
+                            <button 
+                              onClick={async () => {
+                                const api = (await import("@/lib/api")).default;
+                                await api.post("/api/notifications/test");
+                                addToast("Teste de notificação enviado!", "success");
+                              }}
+                              className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest transition-all"
+                            >
+                               Enviar Teste
+                            </button>
+                          </div>
+                       </div>
+                       
+                       <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-start gap-4">
+                          <div className="p-2 bg-primary/10 rounded-lg text-primary"><AlertTriangle size={16} /></div>
+                          <div className="space-y-1">
+                             <p className="text-[10px] font-black text-white uppercase tracking-widest">Dica para iPhone (iOS)</p>
+                             <p className="text-[9px] text-slate-500 font-medium leading-relaxed">
+                                Para receber notificações no iPhone, você **DEVE** clicar em 'Compartilhar' e depois em **'Adicionar à Tela de Início'**. Só então as notificações Push serão permitidas pelo sistema da Apple.
+                             </p>
+                          </div>
                        </div>
                        
                        <div className="flex items-center justify-between opacity-40 grayscale">

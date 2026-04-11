@@ -15,6 +15,7 @@ const mono = Space_Grotesk({
 export const metadata: Metadata = {
   title: "João Rei dos Bugs | Painel SaaS",
   description: "Plataforma avançada de gerenciamento de dados e estatísticas.",
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
   },
