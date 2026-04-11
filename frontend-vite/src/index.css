@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-background: #02000f;
+    --color-surface: rgba(15, 11, 0, 0.6);
+    --color-surface-hover: rgba(255, 255, 255, 0.05);
+    
+    --color-primary: #fbbf24;
+    --color-primary-glow: rgba(251, 191, 36, 0.3);
+    
+    --color-slate-400: #94a3b8;
+    --color-slate-500: #64748b;
+    --color-slate-900: #0f172a;
+    --color-slate-950: #020617;
+    
+    --color-accent-blue: #0ea5e9;
+    --color-accent-emerald: #10b981;
+    --color-accent-gold: #fbbf24;
+    
+    --font-sans: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-mono: var(--font-mono), "Space Grotesk", monospace;
+    
+    --shadow-neon: 0 0 20px rgba(251, 191, 36, 0.2);
+
+    --sidebar-base: #0f0b00;
+    --header-bg: rgba(2, 0, 15, 0.7);
+    --glow-base: #1a1300;
+
+    --background-mesh: radial-gradient(at 0% 0%, rgba(251,191,36,0.1) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(0,240,255,0.05) 0px, transparent 50%);
+    
+    --background: #02000f;
+    --foreground: #f8fafc;
+  }
+
+  body {
+    @apply bg-background text-foreground min-h-screen antialiased overflow-x-hidden;
+    background: radial-gradient(circle at 50% 0%, #1a1300 0%, #020004 60%);
+  }
+
+  body::before {
+    content: "";
+    @apply fixed inset-0 pointer-events-none -z-10;
+    background-image: 
+      linear-gradient(rgba(251, 191, 36, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(251, 191, 36, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-surface backdrop-blur-xl border border-white/5 rounded-2xl transition-all duration-200;
+  }
+
+  .glass-card-hover:hover {
+    @apply bg-surface-hover border-white/10 shadow-neon-gold;
+  }
+
+  .input-field {
+    @apply bg-black/20 border border-white/10 text-white px-4 py-3 rounded-xl outline-none transition-colors duration-200 focus:border-primary;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 hover:brightness-110 hover:shadow-neon-gold active:scale-95;
+  }
+
+  .gateway-card {
+    @apply bg-black/70 backdrop-blur-3xl border border-white/5 shadow-2xl transition-all duration-500;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-[#3d2b00] rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary;
+}
