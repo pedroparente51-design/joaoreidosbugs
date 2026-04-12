@@ -101,6 +101,7 @@ model TeamRemittance {
   cycles      String?
   value       Float
   observation String?
+  rolloverSlot String?
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
   operator    User     @relation("Operator", fields: [operatorId], references: [id], onDelete: Cascade)
@@ -129,6 +130,7 @@ model DailyRecord {
   salary     Float      @default(0.0)
   cycles     String
   observation String?
+  rolloverSlot String?
   sheetId    Int
   createdAt  DateTime   @default(now())
   profit     Float      @default(0.0)

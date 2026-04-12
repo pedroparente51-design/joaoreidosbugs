@@ -34,6 +34,8 @@ interface DailyRecord {
   investment: number;
   withdraw: number;
   cycles: string;
+  observation?: string;
+  rolloverSlot?: string;
   profit?: number;
 }
 
@@ -75,7 +77,7 @@ interface ModalProps {
 }
 
 function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: ModalProps) {
-  const [cycles, setCycles] = useState([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }]);
+  const [cycles, setCycles] = useState([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "", rolloverSlot: "" }]);
 
   useEffect(() => {
     if (isOpen) {
@@ -86,10 +88,11 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
           withdraw: editingRecord.withdraw, 
           bau: (editingRecord as any).bau || 0,
           salary: (editingRecord as any).salary || 0,
-          observation: (editingRecord as any).observation || ""
+          observation: editingRecord.observation || "",
+          rolloverSlot: editingRecord.rolloverSlot || ""
         }]);
       } else {
-        setCycles([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }]);
+        setCycles([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "", rolloverSlot: "" }]);
       }
     }
   }, [editingRecord, isOpen]);
@@ -162,6 +165,15 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
             </div>
 
             <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Slot Rollover</label>
+              <input type="text" value={cycle.rolloverSlot} onChange={(e) => {
+                  const newCycles = [...cycles];
+                  newCycles[index].rolloverSlot = e.target.value;
+                  setCycles(newCycles);
+                }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 outline-none transition-all font-bold" placeholder="Ex: Gates of Olympus" />
+            </div>
+
+            <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Observação</label>
               <textarea value={cycle.observation} onChange={(e) => {
                   const newCycles = [...cycles];
@@ -175,7 +187,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
         {!editingRecord && (
           <button 
             type="button" 
-            onClick={() => setCycles([...cycles, { platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }])}
+            onClick={() => setCycles([...cycles, { platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "", rolloverSlot: "" }])}
             className="w-full border border-dashed border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
           >
             <Plus size={14} /> Adicionar novo depositante
@@ -554,6 +566,7 @@ export default function DailyControlPage() {
                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Plataforma</th>
                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Saque</th>
                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ciclos</th>
+                       <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Slot Rollover</th>
                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Lucro</th>
                        <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ações</th>
                     </tr>
@@ -569,6 +582,7 @@ export default function DailyControlPage() {
                            </td>
                            <td className="px-6 py-4 text-sm font-bold text-white">{formatValue(formatCurrency(r.withdraw))}</td>
                            <td className="px-6 py-4 text-xs font-bold text-slate-400">{r.cycles}</td>
+                           <td className="px-6 py-4 text-xs font-bold text-slate-400 capitalize">{r.rolloverSlot || "---"}</td>
                            <td className={cn("px-6 py-4 text-sm font-bold", computedProfit >= 0 ? "text-accent-blue" : "text-primary")}>
                               {formatValue(formatCurrency(computedProfit))}
                            </td>

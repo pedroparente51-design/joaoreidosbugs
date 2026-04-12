@@ -64,6 +64,7 @@ interface FeedItem {
   cycles?: string;
   value: number;
   observation?: string;
+  rolloverSlot?: string;
   createdAt: string;
 }
 
@@ -127,7 +128,7 @@ export default function TeamPage() {
   // Forms State
   const [opForm, setOpForm] = useState({ platform: "", network: "WE", bets: "", average: "", depositors: "", operatorName: "" });
   const [goalForm, setGoalForm] = useState({ platform: "", target: 0 });
-  const [remitCycles, setRemitCycles] = useState([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }]);
+  const [remitCycles, setRemitCycles] = useState([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "", rolloverSlot: "" }]);
   const [expenseForm, setExpenseForm] = useState({ name: "", amount: 0, category: "Proxy", date: new Date().toISOString().split('T')[0] });
 
   const userRole = useMemo(() => {
@@ -760,6 +761,7 @@ export default function TeamPage() {
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Plataforma</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Depósito/Saque</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Depositantes</th>
+                    <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Slot Rollover</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Lucro Total</th>
                     <th className="px-6 py-4 text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Data</th>
                   </tr>
@@ -772,6 +774,7 @@ export default function TeamPage() {
                         IN: {formatValue(`R$ ${remit.deposit.toFixed(2)}`)} / OUT: {formatValue(`R$ ${remit.withdraw.toFixed(2)}`)}
                       </td>
                       <td className="px-6 py-4 text-xs font-bold text-white uppercase tracking-tighter">{remit.cycles || "0"}</td>
+                      <td className="px-6 py-4 text-[10px] font-bold text-slate-400 capitalize">{remit.rolloverSlot || "---"}</td>
                       <td className="px-6 py-4 text-xs font-bold text-accent-blue">{formatValue(`R$ ${remit.value.toFixed(2)}`)}</td>
                       <td className="px-6 py-4 text-[10px] text-slate-500">{new Date(remit.createdAt).toLocaleDateString()}</td>
                     </tr>
@@ -853,6 +856,14 @@ export default function TeamPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Slot Rollover</label>
+                    <input type="text" className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="Ex: Gates of Olympus" value={cycle.rolloverSlot} onChange={e => {
+                      const newCycles = [...remitCycles];
+                      newCycles[index].rolloverSlot = e.target.value;
+                      setRemitCycles(newCycles);
+                    }} />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Observação</label>
                     <textarea className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50 h-20 resize-none" placeholder="Opcional..." value={cycle.observation} onChange={e => {
                       const newCycles = [...remitCycles];
@@ -865,7 +876,7 @@ export default function TeamPage() {
               
               <button 
                 type="button" 
-                onClick={() => setRemitCycles([...remitCycles, { platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }])}
+                onClick={() => setRemitCycles([...remitCycles, { platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "", rolloverSlot: "" }])}
                 className="w-full border border-dashed border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
               >
                 <Plus size={14} /> Adicionar novo depositante

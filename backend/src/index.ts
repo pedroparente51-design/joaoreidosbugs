@@ -588,7 +588,8 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
         salary,
         cycles: "1",
         profit,
-        observation: c.observation || null
+        observation: c.observation || null,
+        rolloverSlot: c.rolloverSlot || null
       });
     }
 
@@ -626,7 +627,16 @@ app.put("/api/daily-records/:id", authenticate, async (req: any, res: any) => {
 
     const record = await prisma.dailyRecord.update({
       where: { id: Number(req.params.id) },
-      data: { platform: platformUpdated, investment: inv, withdraw: wd, bau: b, salary: s, observation, profit }
+      data: { 
+        platform: platformUpdated, 
+        investment: inv, 
+        withdraw: wd, 
+        bau: b, 
+        salary: s, 
+        observation, 
+        profit,
+        rolloverSlot: req.body.rolloverSlot
+      }
     });
     res.json(record);
   } catch (error) { res.status(500).json({ error: "Internal error" }); }
@@ -963,7 +973,8 @@ app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
         salary,
         cycles: "1", // Cada iteração representa 1 ciclo
         value: calculatedValue,
-        observation: c.observation || null
+        observation: c.observation || null,
+        rolloverSlot: c.rolloverSlot || null
       });
     }
 
