@@ -235,7 +235,7 @@ export default function TeamPage() {
     try {
       await api.post("/teams/remittance", { teamId: team.id, cycles: remitCycles });
       fetchDashboardData(team.id);
-      setRemitCycles([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "" }]);
+      setRemitCycles([{ platform: "", deposit: 0, withdraw: 0, bau: 0, salary: 0, observation: "", rolloverSlot: "" }]);
       setIsRemitModalOpen(false);
       alert("Remessas registradas com sucesso!");
     } catch (e) { alert("Erro ao registrar remessas"); }
