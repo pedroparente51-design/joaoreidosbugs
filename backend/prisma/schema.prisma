@@ -46,6 +46,7 @@ model Team {
   instagram   String?
   color       String?          @default("#7000FF")
   ownerId     Int
+  image       String?
   createdAt   DateTime         @default(now())
   owner       User             @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   goals       TeamGoal[]

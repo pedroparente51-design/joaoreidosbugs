@@ -701,7 +701,7 @@ const generateTeamCode = () => {
 
 app.post("/api/teams/create", authenticate, async (req: any, res: any) => {
   try {
-    const { name, instagram, color } = req.body;
+    const { name, instagram, color, image } = req.body;
     const code = generateTeamCode();
     
     // Ensure the owner is not already in another team (assuming 1 team per user for simplicity, or just atomic create)
@@ -719,6 +719,7 @@ app.post("/api/teams/create", authenticate, async (req: any, res: any) => {
         code,
         instagram,
         color,
+        image,
         ownerId: req.user.userId,
         members: {
           create: {

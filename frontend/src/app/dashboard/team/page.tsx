@@ -36,6 +36,7 @@ interface Team {
   name: string;
   code: string;
   color: string;
+  image?: string;
   instagram?: string;
 }
 
@@ -93,7 +94,7 @@ export default function TeamPage() {
   const [view, setView] = useState<"INITIAL" | "DASHBOARD">("INITIAL");
 
   // Create Team State
-  const [createForm, setCreateForm] = useState({ name: "", instagram: "", color: "#7000FF" });
+  const [createForm, setCreateForm] = useState({ name: "", instagram: "", color: "#7000FF", image: "" });
   const [joinCode, setJoinCode] = useState("");
 
   // Dashboard Data
@@ -345,6 +346,44 @@ export default function TeamPage() {
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Instagram (Opcional)</label>
             <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="@seuinstagram" value={createForm.instagram} onChange={e => setCreateForm({ ...createForm, instagram: e.target.value })} />
           </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Foto da Equipe (Opcional)</label>
+            <div className="flex flex-col items-center gap-4 p-4 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+              {createForm.image ? (
+                <div className="relative w-24 h-24 rounded-xl overflow-hidden group">
+                  <img src={createForm.image} alt="Preview" className="w-full h-full object-cover" />
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({ ...createForm, image: "" })}
+                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={20} className="text-white" />
+                  </button>
+                </div>
+              ) : (
+                <label className="w-24 h-24 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-white/10 transition-all group">
+                  <Plus size={20} className="text-slate-500 group-hover:text-primary transition-colors" />
+                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Anexar</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 2 * 1024 * 1024) return alert("Máximo 2MB!");
+                        const reader = new FileReader();
+                        reader.onloadend = () => setCreateForm({ ...createForm, image: reader.result as string });
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+              )}
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest text-center">Tamanho máx: 2MB</p>
+            </div>
+          </div>
           <button type="submit" className="w-full bg-primary py-4 rounded-xl font-bold uppercase tracking-widest text-[11px] hover:scale-[1.02] active:scale-[0.98] transition-all">FINALIZAR CRIAÇÃO</button>
         </form>
       </Modal>
@@ -373,7 +412,13 @@ export default function TeamPage() {
     <div className="space-y-8 animate-fade-in pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
-          <div className="w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center text-white" style={{ backgroundColor: team?.color }}><Users size={32} /></div>
+          <div className={cn("w-16 h-16 rounded-2xl shadow-lg flex items-center justify-center text-white overflow-hidden", !team?.image && "bg-primary")} style={{ backgroundColor: !team?.image ? team?.color : undefined }}>
+            {team?.image ? (
+              <img src={team.image} alt={team.name} className="w-full h-full object-cover" />
+            ) : (
+              <Users size={32} />
+            )}
+          </div>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-black text-white tracking-tighter uppercase">{team?.name}</h1>
