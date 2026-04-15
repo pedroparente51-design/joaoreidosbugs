@@ -575,7 +575,8 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
       const bau = Number(c.bau) || 0;
       const salary = Number(c.salary) || 0;
       
-      const profit = withdraw + bau + salary;
+      // Fórmula: Resultado = (Saque + Baú + Cooperação) - Depósito
+      const profit = (withdraw + bau + salary) - investment;
       totalProfit += profit;
 
       recordsToCreate.push({
@@ -601,10 +602,12 @@ app.post("/api/daily-records", authenticate, async (req: any, res: any) => {
 
     // Send aggregated push notification
     const formattedProfit = totalProfit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const profitStatus = totalProfit > 0 ? "Lucro" : totalProfit < 0 ? "Prejuízo" : "Sem lucro ou prejuízo";
+    
     sendPushNotification(
       req.user.userId,
       "Remessa registrada!",
-      `Novo registro de ${cycles.length} ciclo(s) - Lucro Total ${formattedProfit}`
+      `Novo registro de ${cycles.length} ciclo(s) - ${profitStatus} Total ${formattedProfit}`
     ).catch(e => console.error("Notification error:", e));
   } catch (error) { 
     console.error("Create daily-record error:", error);
@@ -620,7 +623,8 @@ app.put("/api/daily-records/:id", authenticate, async (req: any, res: any) => {
     const b = Number(bau) || 0;
     const s = Number(salary) || 0;
     
-    const profit = wd + b + s;
+    // Fórmula: Resultado = (Saque + Baú + Cooperação) - Depósito
+    const profit = (wd + b + s) - inv;
     
     const recordBefore = await prisma.dailyRecord.findUnique({ where: { id: Number(req.params.id) }, include: { sheet: true } });
     const platformUpdated = recordBefore?.sheet?.name || "Desconhecida";
@@ -958,7 +962,9 @@ app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
       const bau = Number(c.bau) || 0;
       const salary = Number(c.salary) || 0;
       
-      const calculatedValue = withdraw + bau + salary - deposit;
+      // Fórmula: Resultado = (Saque + Baú + Cooperação) - Depósito
+      // Campos vazios/indefinidos já são tratados como 0 pelo operador || 0
+      const calculatedValue = (withdraw + bau + salary) - deposit;
       totalProfit += calculatedValue;
       
       const platformStr = c.platform || "Desconhecida";
@@ -1011,8 +1017,9 @@ app.post("/api/teams/remittance", authenticate, async (req: any, res: any) => {
       const operatorName = operator ? operator.user.name : "Alguém";
       
       const formattedProfit = totalProfit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const profitStatus = totalProfit > 0 ? "Lucro" : totalProfit < 0 ? "Prejuízo" : "Sem lucro ou prejuízo";
       const notificationTitle = "Remessa registrada!";
-      const notificationBody = `Op. ${operatorName} finalizou ${cycles.length} ciclo(s) - Lucro Total ${formattedProfit}`;
+      const notificationBody = `Op. ${operatorName} finalizou ${cycles.length} ciclo(s) - ${profitStatus} Total ${formattedProfit}`;
       
       const notificationPromises = teamMembers.map((m: any) => 
         sendPushNotification(m.userId, notificationTitle, notificationBody)

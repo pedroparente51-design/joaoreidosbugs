@@ -74,7 +74,7 @@ export default function RegisterPage() {
 
       <div className="w-full max-w-[450px] z-10 animate-fade-in">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-primary/20 text-primary mb-6 backdrop-blur-md border border-primary/30">
+          <div img>
             <TrendingUp size={40} />
           </div>
           <h1 className="text-4xl font-black text-white mb-3 tracking-tight font-mono uppercase">
