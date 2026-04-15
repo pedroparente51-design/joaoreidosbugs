@@ -19,6 +19,7 @@ model User {
   status          UserStatus       @default(ACTIVE)
   activities      Activity[]
   sheets          DailySheet[]
+  cpaSheets       CpaSheet[]
   expenses        Expense[]
   goals           Goal[]
   statistics      Statistic[]
@@ -200,6 +201,31 @@ model TeamExpense {
   createdAt DateTime @default(now())
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CpaSheet {
+  id        Int         @id @default(autoincrement())
+  name      String
+  userId    Int
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  records   CpaRecord[]
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CpaRecord {
+  id           Int      @id @default(autoincrement())
+  date         DateTime @default(now())
+  plataforma   String
+  deposito     Float    @default(0.0)
+  saque        Float    @default(0.0)
+  donoRecebeu  Float    @default(0.0)
+  cpa          Float    @default(0.0)
+  observation  String?
+  resultado    Float    @default(0.0)
+  sheetId      Int
+  createdAt    DateTime @default(now())
+  sheet        CpaSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
 }
 
 enum Role {

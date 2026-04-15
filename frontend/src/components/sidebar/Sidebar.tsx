@@ -14,7 +14,8 @@ import {
   Settings,
   Mail,
   X,
-  ShieldAlert
+  ShieldAlert,
+  TrendingDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard } from "../layout/DashboardContext";
@@ -29,6 +30,7 @@ const links = [
   { href: "/dashboard/loja", label: "Loja de Proxy", icon: ShoppingBag },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/daily-control", label: "Controle Diário", icon: CalendarDays },
+  { href: "/dashboard/cpa-negativo", label: "CPA Negativo", icon: TrendingDown },
   { href: "/dashboard/expenses", label: "Despesas", icon: Receipt },
   { href: "/dashboard/goals", label: "Metas", icon: Crown },
   { href: "/dashboard/team", label: "Equipe", icon: ShieldCheck },

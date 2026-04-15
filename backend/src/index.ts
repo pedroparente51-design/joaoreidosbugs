@@ -696,6 +696,131 @@ app.get("/api/dashboard-summary", authenticate, async (req: any, res: any) => {
   }
 });
 
+// --- CPA NEGATIVO SHEETS & RECORDS ---
+app.get("/api/cpa-sheets", authenticate, async (req: any, res: any) => {
+  try {
+    const sheets = await prisma.cpaSheet.findMany({
+      where: { userId: req.user.userId },
+      include: { records: { orderBy: { createdAt: 'desc' } } },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json(sheets);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/cpa-sheets", authenticate, async (req: any, res: any) => {
+  try {
+    const { name } = req.body;
+    const sheet = await prisma.cpaSheet.create({
+      data: { name, userId: req.user.userId },
+      include: { records: true }
+    });
+    res.json(sheet);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.put("/api/cpa-sheets/:id", authenticate, async (req: any, res: any) => {
+  try {
+    const { name } = req.body;
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    
+    const sheet = await prisma.cpaSheet.update({
+      where: { id: Number(req.params.id) },
+      data: updateData,
+      include: { records: true }
+    });
+    res.json(sheet);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.delete("/api/cpa-sheets/:id", authenticate, async (req: any, res: any) => {
+  try {
+    await prisma.cpaSheet.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.post("/api/cpa-records", authenticate, async (req: any, res: any) => {
+  try {
+    const { sheetId, date, cycles } = req.body;
+
+    if (!cycles || !Array.isArray(cycles) || cycles.length === 0) {
+      return res.status(400).json({ error: "No cycles provided" });
+    }
+
+    const recordDate = date ? new Date(date) : new Date();
+
+    const recordsToCreate: any[] = [];
+
+    for (const c of cycles) {
+      const deposito = Number(c.deposito) || 0;
+      const saque = Number(c.saque) || 0;
+      const donoRecebeu = Number(c.donoRecebeu) || 0;
+      const cpa = Number(c.cpa) || 0;
+      const plataforma = c.plataforma || "";
+      
+      // Fórmula: Resultado = (Saque + CPA) - (Depósito + Quanto dono recebeu)
+      const resultado = (saque + cpa) - (deposito + donoRecebeu);
+
+      recordsToCreate.push({
+        sheetId: Number(sheetId),
+        date: recordDate,
+        plataforma,
+        deposito,
+        saque,
+        donoRecebeu,
+        cpa,
+        resultado,
+        observation: c.observation || null
+      });
+    }
+
+    await prisma.cpaRecord.createMany({
+      data: recordsToCreate
+    });
+
+    res.json({ success: true, cyclesProcessed: cycles.length });
+  } catch (error) { 
+    console.error("Create cpa-record error:", error);
+    res.status(500).json({ error: "Internal error" }); 
+  }
+});
+
+app.put("/api/cpa-records/:id", authenticate, async (req: any, res: any) => {
+  try {
+    const { deposito, saque, donoRecebeu, cpa, plataforma, observation } = req.body;
+    const dep = Number(deposito) || 0;
+    const saq = Number(saque) || 0;
+    const dono = Number(donoRecebeu) || 0;
+    const cpaVal = Number(cpa) || 0;
+    
+    // Fórmula: Resultado = (Saque + CPA) - (Depósito + Quanto dono recebeu)
+    const resultado = (saq + cpaVal) - (dep + dono);
+
+    const record = await prisma.cpaRecord.update({
+      where: { id: Number(req.params.id) },
+      data: { 
+        plataforma: plataforma || "",
+        deposito: dep, 
+        saque: saq, 
+        donoRecebeu: dono, 
+        cpa: cpaVal, 
+        observation, 
+        resultado
+      }
+    });
+    res.json(record);
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
+app.delete("/api/cpa-records/:id", authenticate, async (req: any, res: any) => {
+  try {
+    await prisma.cpaRecord.delete({ where: { id: Number(req.params.id) } });
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: "Internal error" }); }
+});
+
 // --- TEAM ROUTES ---
 
 // Helper to generate unique team code
