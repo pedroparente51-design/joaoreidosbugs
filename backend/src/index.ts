@@ -150,6 +150,50 @@ app.post("/api/user/profile", authenticate, async (req: any, res: any) => {
   } catch (error) { res.status(500).json({ error: "Internal error" }); }
 });
 
+app.post("/api/user/reset-data", authenticate, async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+    await prisma.$transaction([
+      prisma.dailySheet.deleteMany({ where: { userId } }),
+      prisma.cpaSheet.deleteMany({ where: { userId } }),
+      prisma.expense.deleteMany({ where: { userId } }),
+      prisma.goal.deleteMany({ where: { userId } }),
+      prisma.statistic.deleteMany({ where: { userId } }),
+      prisma.activity.deleteMany({ where: { userId } })
+    ]);
+    res.json({ success: true, message: "Dados redefinidos com sucesso" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao redefinir dados" });
+  }
+});
+
+app.post("/api/team/leave", authenticate, async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+    const teamMember = await prisma.teamMember.findFirst({ where: { userId } });
+    if (!teamMember) {
+      return res.status(400).json({ error: "Você não está em nenhuma equipe" });
+    }
+    
+    const team = await prisma.team.findUnique({ where: { id: teamMember.teamId } });
+    if (team?.ownerId === userId) {
+      return res.status(400).json({ error: "O dono não pode sair da equipe, apenas excluir a equipe." });
+    }
+
+    await prisma.teamMember.delete({ where: { id: teamMember.id } });
+    
+    await prisma.activity.create({
+      data: { userId, actionType: "TEAM_LEAVE", description: `Saiu da equipe: ${team?.name || 'Desconhecida'}` }
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao sair da equipe" });
+  }
+});
+
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -673,22 +717,26 @@ app.get("/api/dashboard-summary", authenticate, async (req: any, res: any) => {
     
     let totalInvest = 0;
     let totalWithdraw = 0;
+    let totalBau = 0;
+    let totalSalary = 0;
     let totalProxySms = 0;
     
     sheets.forEach((sheet: any) => {
       totalProxySms += (sheet.proxyCost || 0) + (sheet.smsCost || 0);
       sheet.records.forEach((record: any) => {
-        totalInvest += record.investment;
-        totalWithdraw += record.withdraw;
+        totalInvest += record.investment || 0;
+        totalWithdraw += record.withdraw || 0;
+        totalBau += record.bau || 0;
+        totalSalary += record.salary || 0;
       });
     });
     const totalExp = todayExpenses.reduce((acc: number, e: any) => acc + e.amount, 0);
     
     const investment = totalInvest + totalProxySms + totalExp;
-    const revenue = totalWithdraw;
+    const revenue = totalWithdraw + totalBau + totalSalary;
     const profit = revenue - investment;
     const roi = investment > 0 ? (profit / investment) * 100 : 0;
-    const totalMovimentado = totalInvest + totalWithdraw;
+    const totalMovimentado = totalInvest + totalWithdraw + totalBau + totalSalary;
     
     res.json({ investment, revenue, profit, roi, totalMovimentado });
   } catch (error) {

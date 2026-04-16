@@ -108,7 +108,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
         {cycles.map((cycle, index) => (
           <div key={index} className="space-y-4 p-4 border border-white/5 rounded-2xl bg-white/[0.02]">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Item {index + 1}</span>
+              <span className="text-xs font-bold text-violet-400 uppercase tracking-widest">Item {index + 1}</span>
               {!editingRecord && cycles.length > 1 && (
                 <button type="button" onClick={() => setCycles(cycles.filter((_, i) => i !== index))} className="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest">Remover</button>
               )}
@@ -120,7 +120,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
                 const newCycles = [...cycles];
                 newCycles[index].plataforma = e.target.value;
                 setCycles(newCycles);
-              }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-red-500/50 outline-none transition-all font-bold" placeholder="Ex: Bet365, Betano..." />
+              }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-violet-500/50 outline-none transition-all font-bold" placeholder="Ex: Bet365, Betano..." />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -167,7 +167,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
                 const newCycles = [...cycles];
                 newCycles[index].observation = e.target.value;
                 setCycles(newCycles);
-              }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-red-500/50 outline-none transition-all h-20 resize-none font-bold" placeholder="Opcional..." />
+              }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-violet-500/50 outline-none transition-all h-20 resize-none font-bold" placeholder="Opcional..." />
             </div>
           </div>
         ))}
@@ -185,7 +185,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
         <div className="pt-4">
           <button
             type="submit"
-            className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-[11px]"
+            className="w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-[11px]"
           >
             {editingRecord ? "Salvar Alterações" : `Adicionar ${cycles.length} Item(s)`}
           </button>
@@ -376,7 +376,7 @@ export default function CpaNegativoPage() {
               <h1 className="text-3xl font-bold text-white tracking-tighter">
                 {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
               </h1>
-              <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">
                 {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })}
               </span>
             </div>
@@ -394,7 +394,7 @@ export default function CpaNegativoPage() {
               onClick={() => setPeriod(p)}
               className={cn(
                 "flex-1 py-3 text-[10px] font-bold rounded-xl transition-all uppercase tracking-widest",
-                period === p ? "bg-red-600 text-white shadow-md" : "text-slate-500 hover:text-slate-300"
+                period === p ? "bg-violet-600 text-white shadow-md" : "text-slate-500 hover:text-slate-300"
               )}
             >
               {p}
@@ -405,7 +405,7 @@ export default function CpaNegativoPage() {
         {/* Sheet Tabs */}
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-red-500/10 rounded-lg text-red-400">
+            <div className="p-2.5 bg-violet-500/10 rounded-lg text-violet-400">
               <Layers size={18} />
             </div>
             <span className="text-xs font-bold text-white uppercase tracking-widest">Planilhas</span>
@@ -431,7 +431,7 @@ export default function CpaNegativoPage() {
                 )}
               </div>
             ))}
-            <button onClick={openAddSheet} className="px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all">+</button>
+            <button onClick={openAddSheet} className="px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 transition-all">+</button>
           </div>
         </div>
       </div>
@@ -439,7 +439,7 @@ export default function CpaNegativoPage() {
       {/* Records Table Box */}
       <div className="space-y-6">
         <div className="flex items-center gap-3 px-2">
-          <TrendingDown size={18} className="text-red-400" />
+          <TrendingDown size={18} className="text-violet-400" />
           <h2 className="text-sm font-bold text-white uppercase tracking-widest">Registros CPA Negativo</h2>
         </div>
 
@@ -474,7 +474,7 @@ export default function CpaNegativoPage() {
 
               <button
                 onClick={() => { setEditingRecord(null); setIsModalOpen(true); }}
-                className="w-full lg:w-auto bg-red-600 hover:bg-red-500 text-white flex items-center justify-center gap-3 px-10 py-4 rounded-2xl font-bold text-[11px] uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all"
+                className="w-full lg:w-auto bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center gap-3 px-10 py-4 rounded-2xl font-bold text-[11px] uppercase tracking-widest shadow-lg shadow-violet-600/20 active:scale-95 transition-all"
               >
                 <Plus size={18} /> Adicionar Item
               </button>
@@ -554,11 +554,11 @@ export default function CpaNegativoPage() {
               required
               value={sheetFormName}
               onChange={(e) => setSheetFormName(e.target.value)}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-4 text-white focus:border-red-500/50 outline-none transition-all placeholder:text-slate-700 font-bold text-lg"
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-4 text-white focus:border-violet-500/50 outline-none transition-all placeholder:text-slate-700 font-bold text-lg"
               placeholder="Ex: CPA Bet365, CPA Betano..."
             />
           </div>
-          <button type="submit" className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-[11px]">
+          <button type="submit" className="w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-[11px]">
             {editingSheetId ? "Salvar Alterações" : "Criar Planilha"}
           </button>
         </form>
