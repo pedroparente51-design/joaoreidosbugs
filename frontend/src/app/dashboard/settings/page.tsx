@@ -88,7 +88,7 @@ export default function SettingsPage() {
       alert("Seus dados pessoais foram redefinidos com sucesso!");
       window.location.reload(); 
     } catch (e: any) {
-      alert("Erro ao redefinir dados");
+      alert(e.response?.data?.error || "Erro ao redefinir dados");
     }
   };
 
@@ -394,7 +394,7 @@ export default function SettingsPage() {
                                 alert("Você saiu da equipe com sucesso.");
                                 window.location.reload();
                               } catch (e: any) {
-                                alert("Erro ao sair da equipe. Talvez você não esteja em nenhuma equipe.");
+                                alert(e.response?.data?.error || "Erro ao sair da equipe. Talvez você não esteja em nenhuma equipe.");
                               }
                             }}
                             className="flex items-center gap-3 px-8 py-4 bg-red-500/80 hover:bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(239,68,68,0.2)] transition-all"
