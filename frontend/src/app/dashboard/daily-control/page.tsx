@@ -137,7 +137,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Saque (R$)</label>
-                <input required type="number" step="0.01" value={cycle.withdraw || ''} onChange={(e) => {
+                <input type="number" step="0.01" value={cycle.withdraw || ''} onChange={(e) => {
                   const newCycles = [...cycles];
                   newCycles[index].withdraw = parseFloat(e.target.value) || 0;
                   setCycles(newCycles);

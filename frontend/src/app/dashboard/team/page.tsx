@@ -875,7 +875,7 @@ export default function TeamPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Saque (R$)</label>
-                      <input type="number" step="0.01" required className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.withdraw || ''} onChange={e => {
+                      <input type="number" step="0.01" className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.withdraw || ''} onChange={e => {
                         const newCycles = [...remitCycles];
                         newCycles[index].withdraw = parseFloat(e.target.value) || 0;
                         setRemitCycles(newCycles);
@@ -885,7 +885,7 @@ export default function TeamPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Baú (R$)</label>
-                      <input type="number" step="0.01" required className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.bau || ''} onChange={e => {
+                      <input type="number" step="0.01" className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.bau || ''} onChange={e => {
                         const newCycles = [...remitCycles];
                         newCycles[index].bau = parseFloat(e.target.value) || 0;
                         setRemitCycles(newCycles);
@@ -893,7 +893,7 @@ export default function TeamPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Salário (R$)</label>
-                      <input type="number" step="0.01" required className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.salary || ''} onChange={e => {
+                      <input type="number" step="0.01" className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary/50" placeholder="0.00" value={cycle.salary || ''} onChange={e => {
                         const newCycles = [...remitCycles];
                         newCycles[index].salary = parseFloat(e.target.value) || 0;
                         setRemitCycles(newCycles);
