@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus, 
-  Trash2, 
-  Edit2, 
-  Layers, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Edit2,
+  Layers,
   Calendar,
   Pencil,
   Activity as LucideActivity,
@@ -73,10 +73,10 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
   useEffect(() => {
     if (isOpen) {
       if (editingRecord) {
-        setCycles([{ 
-          plataforma: editingRecord.plataforma, 
-          deposito: editingRecord.deposito, 
-          saque: editingRecord.saque, 
+        setCycles([{
+          plataforma: editingRecord.plataforma,
+          deposito: editingRecord.deposito,
+          saque: editingRecord.saque,
           donoRecebeu: editingRecord.donoRecebeu,
           cpa: editingRecord.cpa,
           observation: editingRecord.observation || ""
@@ -98,9 +98,9 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
   };
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
       title={editingRecord ? "Editar Registro" : "Adicionar Registro"}
       icon={<TrendingDown size={20} />}
     >
@@ -117,10 +117,10 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Plataforma</label>
               <input type="text" value={cycle.plataforma} onChange={(e) => {
-                  const newCycles = [...cycles];
-                  newCycles[index].plataforma = e.target.value;
-                  setCycles(newCycles);
-                }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-red-500/50 outline-none transition-all font-bold" placeholder="Ex: Bet365, Betano..." />
+                const newCycles = [...cycles];
+                newCycles[index].plataforma = e.target.value;
+                setCycles(newCycles);
+              }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-red-500/50 outline-none transition-all font-bold" placeholder="Ex: Bet365, Betano..." />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -164,17 +164,17 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Observação</label>
               <textarea value={cycle.observation} onChange={(e) => {
-                  const newCycles = [...cycles];
-                  newCycles[index].observation = e.target.value;
-                  setCycles(newCycles);
-                }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-red-500/50 outline-none transition-all h-20 resize-none font-bold" placeholder="Opcional..." />
+                const newCycles = [...cycles];
+                newCycles[index].observation = e.target.value;
+                setCycles(newCycles);
+              }} className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-red-500/50 outline-none transition-all h-20 resize-none font-bold" placeholder="Opcional..." />
             </div>
           </div>
         ))}
 
         {!editingRecord && (
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setCycles([...cycles, { plataforma: "", deposito: 0, saque: 0, donoRecebeu: 0, cpa: 0, observation: "" }])}
             className="w-full border border-dashed border-white/10 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
           >
@@ -199,7 +199,7 @@ function RecordModal({ isOpen, onClose, onSave, editingRecord, selectedDate }: M
 
 export default function CpaNegativoPage() {
   const { formatValue, isValuesVisible } = useDashboard();
-  
+
   // States
   const [sheets, setSheets] = useState<CpaSheet[]>([]);
   const [activeSheetId, setActiveSheetId] = useState<number>(0);
@@ -234,24 +234,24 @@ export default function CpaNegativoPage() {
   }, []);
 
   // 3. Derived Logic
-  const activeSheet = useMemo(() => 
+  const activeSheet = useMemo(() =>
     sheets.find(s => s.id === activeSheetId) || sheets[0] || { id: 0, name: 'GERAL', records: [] }
-  , [sheets, activeSheetId]);
+    , [sheets, activeSheetId]);
 
   const filteredRecords = useMemo(() => {
     const baseDateYMD = dateToYMD(selectedDate);
     return (activeSheet.records || []).filter(record => {
       const recDateYMD = dateToYMD(record.date);
-      
+
       if (period === '1D') {
         return recDateYMD === baseDateYMD;
       }
-      
-      const recTime = new Date(record.date).setHours(0,0,0,0);
-      const baseTime = new Date(selectedDate).setHours(0,0,0,0);
+
+      const recTime = new Date(record.date).setHours(0, 0, 0, 0);
+      const baseTime = new Date(selectedDate).setHours(0, 0, 0, 0);
       const diffTime = Math.abs(baseTime - recTime);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       switch (period) {
         case '7D': return diffDays <= 7;
         case '15D': return diffDays <= 15;
@@ -268,7 +268,7 @@ export default function CpaNegativoPage() {
     const totalDonoRecebeu = filteredRecords.reduce((acc, r) => acc + r.donoRecebeu, 0);
     const totalCpa = filteredRecords.reduce((acc, r) => acc + r.cpa, 0);
     const resultado = (totalSaque + totalCpa) - (totalDeposito + totalDonoRecebeu);
-    
+
     return { totalDeposito, totalSaque, totalDonoRecebeu, totalCpa, resultado };
   }, [filteredRecords]);
 
@@ -285,12 +285,16 @@ export default function CpaNegativoPage() {
     try {
       if (editingRecord) {
         const { data: updated } = await api.put(`/cpa-records/${editingRecord.id}`, data);
-        setSheets(prev => prev.map(s => s.id === activeSheetId ? { 
-          ...s, 
-          records: s.records.map(r => r.id === editingRecord.id ? updated : r) 
+        setSheets(prev => prev.map(s => s.id === activeSheetId ? {
+          ...s,
+          records: s.records.map(r => r.id === editingRecord.id ? updated : r)
         } : s));
       } else {
-        await api.post('/cpa-records', { cycles: data, sheetId: activeSheetId, date: selectedDate });
+        await api.post('/cpa-records', { 
+          cycles: data,
+          sheetId: activeSheetId, 
+          date: dateToYMD(selectedDate) 
+        });        
         const { data: sheetsData } = await api.get('/cpa-sheets');
         setSheets(sheetsData);
       }
@@ -301,8 +305,8 @@ export default function CpaNegativoPage() {
     if (confirm("Deseja excluir este registro?")) {
       try {
         await api.delete(`/cpa-records/${id}`);
-        setSheets(prev => prev.map(s => s.id === activeSheetId ? { 
-          ...s, records: s.records.filter(r => r.id !== id) 
+        setSheets(prev => prev.map(s => s.id === activeSheetId ? {
+          ...s, records: s.records.filter(r => r.id !== id)
         } : s));
       } catch (e) { console.error(e); }
     }
@@ -353,36 +357,33 @@ export default function CpaNegativoPage() {
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-20">
-      
+
       {/* 1. Unified Control Box */}
       <div className="max-w-4xl mx-auto w-full glass-card p-6 md:p-10 space-y-10">
-        
+
         {/* Header */}
         <div className="flex items-center justify-center gap-3">
-          <div className="p-3 bg-red-500/10 rounded-2xl">
-            <TrendingDown size={24} className="text-red-400" />
-          </div>
           <h1 className="text-2xl font-black text-white uppercase tracking-tight">CPA Negativo</h1>
         </div>
 
         {/* Date Controls */}
         <div className="flex justify-center items-center">
-           <div className="flex items-center gap-6">
-              <button onClick={() => handleNextPrev('prev')} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400">
-                 <ChevronLeft size={20} />
-              </button>
-              <div className="flex flex-col items-center min-w-[120px]">
-                 <h1 className="text-3xl font-bold text-white tracking-tighter">
-                   {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
-                 </h1>
-                 <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">
-                   {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })}
-                 </span>
-              </div>
-              <button onClick={() => handleNextPrev('next')} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400">
-                 <ChevronRight size={20} />
-              </button>
-           </div>
+          <div className="flex items-center gap-6">
+            <button onClick={() => handleNextPrev('prev')} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400">
+              <ChevronLeft size={20} />
+            </button>
+            <div className="flex flex-col items-center min-w-[120px]">
+              <h1 className="text-3xl font-bold text-white tracking-tighter">
+                {selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+              </h1>
+              <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">
+                {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })}
+              </span>
+            </div>
+            <button onClick={() => handleNextPrev('next')} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400">
+              <ChevronRight size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Period Filters */}
@@ -404,10 +405,10 @@ export default function CpaNegativoPage() {
         {/* Sheet Tabs */}
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-             <div className="p-2.5 bg-red-500/10 rounded-lg text-red-400">
-                <Layers size={18} />
-             </div>
-             <span className="text-xs font-bold text-white uppercase tracking-widest">Planilhas</span>
+            <div className="p-2.5 bg-red-500/10 rounded-lg text-red-400">
+              <Layers size={18} />
+            </div>
+            <span className="text-xs font-bold text-white uppercase tracking-widest">Planilhas</span>
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
@@ -437,102 +438,102 @@ export default function CpaNegativoPage() {
 
       {/* Records Table Box */}
       <div className="space-y-6">
-         <div className="flex items-center gap-3 px-2">
-            <TrendingDown size={18} className="text-red-400" />
-            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Registros CPA Negativo</h2>
-         </div>
+        <div className="flex items-center gap-3 px-2">
+          <TrendingDown size={18} className="text-red-400" />
+          <h2 className="text-sm font-bold text-white uppercase tracking-widest">Registros CPA Negativo</h2>
+        </div>
 
-         <div className="glass-card overflow-hidden">
-            {/* Header Section: Summary Metrics & Add Button */}
-            <div className="p-6 md:p-8 border-b border-white/5 bg-white/[0.01] space-y-8">
-               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 flex-1">
-                     <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Depósito (−)</p>
-                        <p className="text-lg font-bold text-white tracking-tighter">{formatValue(formatCurrency(stats.totalDeposito))}</p>
-                     </div>
-                     <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Saque (+)</p>
-                        <p className="text-lg font-bold text-white tracking-tighter">{formatValue(formatCurrency(stats.totalSaque))}</p>
-                     </div>
-                     <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Dono recebeu (−)</p>
-                        <p className="text-lg font-bold text-white tracking-tighter">{formatValue(formatCurrency(stats.totalDonoRecebeu))}</p>
-                     </div>
-                     <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">CPA (+)</p>
-                        <p className="text-lg font-bold text-white tracking-tighter">{formatValue(formatCurrency(stats.totalCpa))}</p>
-                     </div>
-                     <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Resultado</p>
-                        <p className={cn("text-lg font-bold tracking-tighter", stats.resultado >= 0 ? "text-emerald-400" : "text-red-400")}>
-                           {formatValue(formatCurrency(stats.resultado))}
-                        </p>
-                     </div>
-                  </div>
+        <div className="glass-card overflow-hidden">
+          {/* Header Section: Summary Metrics & Add Button */}
+          <div className="p-6 md:p-8 border-b border-white/5 bg-white/[0.01] space-y-8">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 flex-1">
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Depósito</p>
+                  <p className="text-lg font-bold text-white tracking-tighter">{formatValue(formatCurrency(stats.totalDeposito))}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Saque</p>
+                  <p className="text-lg font-bold text-white tracking-tighter">{formatValue(formatCurrency(stats.totalSaque))}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Dono recebeu</p>
+                  <p className="text-lg font-bold text-white tracking-tighter">{formatValue(formatCurrency(stats.totalDonoRecebeu))}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">CPA</p>
+                  <p className="text-lg font-bold text-white tracking-tighter">{formatValue(formatCurrency(stats.totalCpa))}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Resultado</p>
+                  <p className={cn("text-lg font-bold tracking-tighter", stats.resultado >= 0 ? "text-emerald-400" : "text-red-400")}>
+                    {formatValue(formatCurrency(stats.resultado))}
+                  </p>
+                </div>
+              </div>
 
-                  <button 
-                    onClick={() => { setEditingRecord(null); setIsModalOpen(true); }}
-                    className="w-full lg:w-auto bg-red-600 hover:bg-red-500 text-white flex items-center justify-center gap-3 px-10 py-4 rounded-2xl font-bold text-[11px] uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all"
-                  >
-                    <Plus size={18} /> Adicionar Item
-                  </button>
-               </div>
+              <button
+                onClick={() => { setEditingRecord(null); setIsModalOpen(true); }}
+                className="w-full lg:w-auto bg-red-600 hover:bg-red-500 text-white flex items-center justify-center gap-3 px-10 py-4 rounded-2xl font-bold text-[11px] uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all"
+              >
+                <Plus size={18} /> Adicionar Item
+              </button>
             </div>
+          </div>
 
-            {/* Table Section */}
-            {filteredRecords.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 opacity-30">
-                 <Calendar size={48} className="mb-4" />
-                 <p className="text-sm font-bold uppercase">Vazio por aqui...</p>
-                 <p className="text-xs">Nenhum registro encontrado neste período.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-white/5 bg-white/[0.02]">
-                       <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Plataforma</th>
-                       <th className="px-6 py-4 text-[10px] font-bold text-red-400 uppercase tracking-widest">Depósito (−)</th>
-                       <th className="px-6 py-4 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Saque (+)</th>
-                       <th className="px-6 py-4 text-[10px] font-bold text-red-400 uppercase tracking-widest">Dono recebeu (−)</th>
-                       <th className="px-6 py-4 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">CPA (+)</th>
-                       <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Resultado</th>
-                       <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {filteredRecords.map(r => {
-                      const computedResult = r.resultado ?? ((r.saque + r.cpa) - (r.deposito + r.donoRecebeu));
-                      return (
-                        <tr key={r.id} className="group hover:bg-white/[0.01] transition-colors">
-                           <td className="px-6 py-4">
-                              <span className="text-[10px] font-bold text-slate-200 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase">{r.plataforma || "---"}</span>
-                           </td>
-                           <td className="px-6 py-4 text-sm font-bold text-red-300">{formatValue(formatCurrency(r.deposito))}</td>
-                           <td className="px-6 py-4 text-sm font-bold text-emerald-300">{formatValue(formatCurrency(r.saque))}</td>
-                           <td className="px-6 py-4 text-sm font-bold text-red-300">{formatValue(formatCurrency(r.donoRecebeu))}</td>
-                           <td className="px-6 py-4 text-sm font-bold text-emerald-300">{formatValue(formatCurrency(r.cpa))}</td>
-                           <td className={cn("px-6 py-4 text-sm font-bold", computedResult >= 0 ? "text-emerald-400" : "text-red-400")}>
-                              {formatValue(formatCurrency(computedResult))}
-                           </td>
-                           <td className="px-6 py-4 text-right relative">
-                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <button onClick={() => { setEditingRecord(r); setIsModalOpen(true); }} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><Edit2 size={14} /></button>
-                                 <button onClick={() => removeRecord(r.id)} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><Trash2 size={14} /></button>
-                              </div>
-                           </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-         </div>
+          {/* Table Section */}
+          {filteredRecords.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 opacity-30">
+              <Calendar size={48} className="mb-4" />
+              <p className="text-sm font-bold uppercase">Vazio por aqui...</p>
+              <p className="text-xs">Nenhum registro encontrado neste período.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.02]">
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Plataforma</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-red-400 uppercase tracking-widest">Depósito</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Saque</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-red-400 uppercase tracking-widest">Dono recebeu</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">CPA</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Resultado</th>
+                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredRecords.map(r => {
+                    const computedResult = r.resultado ?? ((r.saque + r.cpa) - (r.deposito + r.donoRecebeu));
+                    return (
+                      <tr key={r.id} className="group hover:bg-white/[0.01] transition-colors">
+                        <td className="px-6 py-4">
+                          <span className="text-[10px] font-bold text-slate-200 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase">{r.plataforma || "---"}</span>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold text-red-300">{formatValue(formatCurrency(r.deposito))}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-emerald-300">{formatValue(formatCurrency(r.saque))}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-red-300">{formatValue(formatCurrency(r.donoRecebeu))}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-emerald-300">{formatValue(formatCurrency(r.cpa))}</td>
+                        <td className={cn("px-6 py-4 text-sm font-bold", computedResult >= 0 ? "text-emerald-400" : "text-red-400")}>
+                          {formatValue(formatCurrency(computedResult))}
+                        </td>
+                        <td className="px-6 py-4 text-right relative">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => { setEditingRecord(r); setIsModalOpen(true); }} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><Edit2 size={14} /></button>
+                            <button onClick={() => removeRecord(r.id)} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><Trash2 size={14} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
-      <RecordModal 
+      <RecordModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={addOrUpdate}

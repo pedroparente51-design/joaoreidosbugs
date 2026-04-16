@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Eye, EyeOff, LogOut, Menu, TrendingUp } from "lucide-react";
+import { Clock, Eye, EyeOff, LogOut, Menu, TrendingUp, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -135,12 +135,9 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
           href="https://wa.me/5512981502272"
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden md:flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-lg border border-primary/20 hover:bg-primary/20 transition-all font-bold text-[11px] uppercase tracking-wider"
+          className="hidden md:flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-3 py-1.5 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-all font-bold text-[11px] uppercase tracking-wider"
         >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-          </span>
+          <MessageCircle size={14} className="fill-emerald-500/20" />
           Suporte
         </a>
 

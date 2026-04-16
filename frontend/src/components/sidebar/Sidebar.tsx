@@ -36,7 +36,6 @@ const links = [
   { href: "/dashboard/team", label: "Equipe", icon: ShieldCheck },
   { href: "/dashboard/admin", label: "Painel", icon: ShieldAlert },
   { href: "/dashboard/settings", label: "Ajustes", icon: Settings },
-  { href: "https://wa.me/5512981502272", label: "Suporte", icon: Mail },
 ];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {

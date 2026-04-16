@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Settings, User, Bell, Lock, Palette, Database, Save, LogOut, Edit2, Trash2, AlertTriangle, UserMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Modal from "@/components/layout/Modal";
-
+import { clearSession } from "@/lib/auth";
 import { useDashboard } from "@/components/layout/DashboardContext";
 
 export default function SettingsPage() {
   const { addToast, refreshUser, userImage, userName, userRole, subscribeToPush } = useDashboard();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("profile");
   const [userEmail, setUserEmail] = useState("");
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -82,7 +84,7 @@ export default function SettingsPage() {
 
     try {
       const api = (await import("@/lib/api")).default;
-      await api.post("/api/user/reset-data");
+      await api.post("/user/reset-data");
       alert("Seus dados pessoais foram redefinidos com sucesso!");
       window.location.reload(); 
     } catch (e: any) {
@@ -122,7 +124,13 @@ export default function SettingsPage() {
              );
            })}
            <div className="pt-8">
-              <button className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-primary font-bold uppercase tracking-widest text-[11px] hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20">
+              <button 
+                onClick={() => {
+                  clearSession();
+                  router.push('/login');
+                }}
+                className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-primary font-bold uppercase tracking-widest text-[11px] hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
+              >
                 <LogOut size={18} /> Sair do Sistema
               </button>
            </div>
@@ -382,7 +390,7 @@ export default function SettingsPage() {
                               if (!confirm("CONFIRMAÇÃO FINAL: Após sair, você precisará de um novo convite para retornar.")) return;
                               try {
                                 const api = (await import("@/lib/api")).default;
-                                await api.post("/api/team/leave");
+                                await api.post("/team/leave");
                                 alert("Você saiu da equipe com sucesso.");
                                 window.location.reload();
                               } catch (e: any) {

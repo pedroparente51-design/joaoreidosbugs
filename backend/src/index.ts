@@ -1433,6 +1433,8 @@ app.post("/api/user/reset-data", authenticate, async (req: any, res: any) => {
 
     await prisma.$transaction([
       prisma.dailySheet.deleteMany({ where: { userId } }),
+      prisma.cpaSheet.deleteMany({ where: { userId } }),
+      prisma.cpaRecord.deleteMany({ where: { sheet: { userId } } }),
       prisma.goal.deleteMany({ where: { userId } }),
       prisma.expense.deleteMany({ where: { userId } }),
       prisma.statistic.deleteMany({ where: { userId } }),
