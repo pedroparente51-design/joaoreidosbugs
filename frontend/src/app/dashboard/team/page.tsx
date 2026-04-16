@@ -122,6 +122,7 @@ export default function TeamPage() {
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isRemitModalOpen, setIsRemitModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
   const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false);
   const [selectedOperatorName, setSelectedOperatorName] = useState<string | null>(null);
@@ -430,19 +431,19 @@ export default function TeamPage() {
         <div className="flex items-center gap-3">
           <button onClick={() => { navigator.clipboard.writeText(team?.code || ""); alert("Código copiado!"); }} className="bg-white/5 hover:bg-white/10 p-3 rounded-xl text-slate-400 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest"><Share2 size={16} /> Código</button>
           {canManage && (
-            <>
               <button 
                 onClick={handleTeamReset}
                 className="bg-primary/10 hover:bg-primary/20 p-3 rounded-xl text-primary transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest border border-primary/20"
               >
                 <Trash2 size={16} /> Zerar Dados
               </button>
-              <button className="bg-white/5 hover:bg-white/10 p-3 rounded-xl text-slate-400 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest border border-white/10"
-              >
-                <Shield size={16} /> Configurações
-              </button>
-            </>
           )}
+          <button 
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="bg-white/5 hover:bg-white/10 p-3 rounded-xl text-slate-400 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest border border-white/10"
+          >
+            <Shield size={16} /> Configurações
+          </button>
         </div>
       </div>
 
@@ -1157,6 +1158,54 @@ export default function TeamPage() {
           </>
         );
       })()}
+
+      <Modal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        title="Configurações da Equipe"
+        icon={<Shield size={20} />}
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4">
+            <div>
+               <h3 className="text-sm font-bold text-white mb-1">Sair da Equipe</h3>
+               <p className="text-xs text-slate-400">Você perderá o acesso aos dados da equipe e precisará de um convite para voltar.</p>
+            </div>
+            <button onClick={async () => {
+              if(!confirm("Tem certeza que deseja sair da equipe?")) return;
+              try {
+                const api = (await import("@/lib/api")).default;
+                await api.post("/team/leave");
+                alert("Você saiu da equipe com sucesso!");
+                window.location.href = "/dashboard";
+              } catch(e: any) {
+                alert(e.response?.data?.error || "Erro ao sair da equipe.");
+              }
+            }} className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all">Sair da Equipe</button>
+          </div>
+
+          {userRole === "OWNER" && (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-4">
+              <div>
+                 <h3 className="text-sm font-bold text-red-500 mb-1">Excluir Equipe</h3>
+                 <p className="text-xs text-red-400">Atenção dono: esta ação deletará PERMANENTEMENTE toda a equipe, metas e histórico compartilhado para todos os membros. Não há como reverter.</p>
+              </div>
+              <button onClick={async () => {
+                if(!confirm("⚠ PERIGO EXTREMO: EXCLUIR A EQUIPE? Essa ação apagará TODO O HISTÓRICO da equipe de todos os operadores!")) return;
+                try {
+                  const api = (await import("@/lib/api")).default;
+                  await api.post("/team/delete");
+                  alert("A equipe inteira foi excluída.");
+                  window.location.href = "/dashboard";
+                } catch(e: any) {
+                   alert(e.response?.data?.error || "Erro ao excluir equipe.");
+                }
+              }} className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-bold text-xs uppercase tracking-widest transition-all">EXCLUIR EQUIPE (IRREVERSÍVEL)</button>
+            </div>
+          )}
+        </div>
+      </Modal>
+
     </div>
   );
 }

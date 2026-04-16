@@ -194,6 +194,27 @@ app.post("/api/team/leave", authenticate, async (req: any, res: any) => {
   }
 });
 
+app.post("/api/team/delete", authenticate, async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+    const team = await prisma.team.findFirst({ where: { ownerId: userId } });
+    if (!team) {
+      return res.status(400).json({ error: "Você não é dono de nenhuma equipe" });
+    }
+    
+    await prisma.team.delete({ where: { id: team.id } });
+    
+    await prisma.activity.create({
+      data: { userId, actionType: "TEAM_DELETE", description: `Excluiu a equipe: ${team.name}` }
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao excluir equipe" });
+  }
+});
+
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
